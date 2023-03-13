@@ -1,0 +1,36 @@
+#端口
+port: 7890
+socks-port: 7891
+#是否允许局域网
+allow-lan: true
+#模式:rule（规则） / global（全局代理）/ direct（全局直连）
+mode: Rule
+#日志输出级别：如silent / info / warning / error / debug级别越高日志输出量越大
+log-level: info
+#外部控制器
+external-controller: :9090
+
+
+proxies:
+
+proxy-groups:
+
+  - name: 🔰 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🎯 全球直连
+      - DIRECT
+      
+  - name: ♻️ 自动选择
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies: 
+      - 🎯 全球直连
+      - DIRECT
+    
+
+rules:
+  - DOMAIN-SUFFIX,apple.com,REJECT
+  - MATCH,🐟 漏网之鱼
