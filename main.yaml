@@ -51,6 +51,13 @@ proxy-providers:
     interval: 3600
     filter: "^(?!.*(?:订阅|机场)).*"
 
+rule-providers:
+  proxy-domain:
+# 使用 domain 类规则集，可以使匹配更高效
+    behavior: domain
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+    interval: 86400
+
 proxies:
 
 proxy-groups:
