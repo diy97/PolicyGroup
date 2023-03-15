@@ -51,10 +51,10 @@ proxy-providers:
     filter: "^(?!.*(?:订阅|机场)).*"
 
 rule-providers:
-  proxy-domain:
+  Proxy:
 # 使用 domain 类规则集，可以使匹配更高效
     behavior: domain
-    url: https://raw.githubusercontent.com/diy97/PolicyGroup/main/proxy-domain.txt
+    url: https://raw.githubusercontent.com/diy97/PolicyGroup/main/proxy.txt
     interval: 86400
 
 proxies:
@@ -80,6 +80,7 @@ proxy-groups:
 
 #规则
 rules:
+  - RULE-SET,Proxy,🔰 节点选择
   - IP-CIDR,10.0.0.0/24,DIRECT
   - GEOIP,CN,DIRECT
   - MATCH,🔰 节点选择
