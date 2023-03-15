@@ -28,7 +28,7 @@ dns:
 # 开启 DoH 支持 HTTP/3，将并发尝试
   prefer-h3: true
 #IP6解析开关；如果为false，将返回ip6结果为空
-# ipv6: false
+# ipv6: true
 #解析非IP的dns用的dns服务器,只支持纯IP
   default-nameserver:
     - 114.114.114.114
@@ -39,7 +39,8 @@ dns:
     - https://doh.opendns.com/dns-query
     - https://[2001:4860:4860::8888]/dns-query
     - https://[2001:4860:4860::8844]/dns-query
-#远程代理集
+
+#远程代理集,分别填写订阅地址
 proxy-providers:
   provider-a:
     url: https://raw.githubusercontent.com/STASH-NETWORKS-LIMITED/stash-example/main/config.yaml
@@ -61,13 +62,10 @@ rule-providers:
 proxies:
 
 proxy-groups:
-  
   - name: 🔰 节点选择
     type: select
-    incloude-all: true
     proxies:
       - ♻️ 自动选择
-      - 🎯 全球直连
       - DIRECT
     use:
       - provider-a
@@ -78,12 +76,12 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 300
     proxies: 
-      - DIRECT
     use:
       - provider-a
       - provider-b
-    
 
+#规则
 rules:
+  - IP-CIDR,10.0.0.0/24,DIRECT
   - GEOIP,CN,DIRECT
   - MATCH,🔰 节点选择
