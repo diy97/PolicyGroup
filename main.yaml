@@ -56,7 +56,7 @@ rule-providers:
   proxy-domain:
 # 使用 domain 类规则集，可以使匹配更高效
     behavior: domain
-    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+    url:https://raw.githubusercontent.com/diy97/PolicyGroup/main/proxy-domain.txt
     interval: 86400
 
 proxies:
