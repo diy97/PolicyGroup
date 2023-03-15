@@ -37,8 +37,6 @@ dns:
   nameserver:
     - https://dns.cloudflare.com/dns-query
     - https://doh.opendns.com/dns-query
-    - https://[2001:4860:4860::8888]/dns-query
-    - https://[2001:4860:4860::8844]/dns-query
 
 #远程代理集,分别填写订阅地址
 proxy-providers:
