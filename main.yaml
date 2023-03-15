@@ -80,6 +80,9 @@ proxy-groups:
     proxies: 
       - DIRECT
     interval: 300
+    use:
+      - provider-a
+      - provider-b
     
 
 rules:
