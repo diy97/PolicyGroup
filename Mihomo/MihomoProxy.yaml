@@ -1,0 +1,283 @@
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+log-level: info
+dns:
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  nameserver-policy:
+    geosite:cn,private:
+      - https://dns.alidns.com/dns-query
+      - https://doh.pub/dns-query
+    geosite:geolocation-!cn:
+      - https://dns.cloudflare.com/dns-query
+      - https://dns.google/dns-query
+
+proxies:
+- name: "☁️WARP"
+  type: wireguard
+  server: engage.Cloudflareclient.com
+  port: 2408
+  ip: 172.16.0.2
+  ipv6: 2606:4700:110:86c1:ef40:16cf:7863:6f94
+  private-key: IJPlSgEgiCmrlN/0XQRGk+lOiZlILUpvQrZwCoHUEEM=
+  public-key: bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=
+  dns: [1.1.1.1,2606:4700:4700::1111]
+  reserved: [91,205,188]
+  mtu: 1280
+  keepalive: 45
+  udp: true
+  dialer-proxy: "US"
+
+- name: "US-HY"
+  type: hysteria2
+  server: domain/ip
+  ports: 20000-50000
+  password: password
+  up: "50 Mbps"
+  down: "500 Mbps"
+  sni: domain
+  skip-cert-verify: false
+  disableUDP: false
+
+- name: "US-Trojan"
+  type: trojan
+  server: domain/ip
+  port: 40589
+  password: password
+  udp: true
+  sni: domain
+  skip-cert-verify: true
+  alpn:
+  - h3
+  - h2
+  - http/1.1
+  network: tcp
+
+- name: "US-vless"
+  type: vless
+  server: domain/ip
+  port: 21414
+  udp: true
+  uuid: uuid
+  tls: true
+  skip-cert-verify: true
+  alpn:
+  - h3
+  - h2
+  - http/1.1
+  ws-opts:
+    path: /vless
+  network: ws
+
+
+- name: "US-vmess"
+  type: vmess
+  server: domain/ip
+  port: 31444
+  udp: true
+  alterId: 0
+  cipher: auto
+  uuid: uuid
+  tls: true
+  skip-cert-verify: true
+  alpn:
+  - h3
+  - h2
+  - http/1.1
+  network: ws
+  ws-opts:
+    path: /vmess
+
+
+# 订阅地址
+proxy-providers:
+  Magsic:
+    type: http
+    path: "./proxy_provider/Magsic.yaml"
+    filter: "^(?!.*(10x|游戏|到期|网址|节点))"
+    url: https://url.com
+    interval: 3600
+    health-check: {enable: true, url: "http://www.apple.com/library/test/success.html", interval: 300}
+
+# 建立锚点
+p: &p {include-all: true,url: "http://www.apple.com/library/test/success.html", interval: '300', tolerance: '50'}
+pg: &pg {type: select,proxies: [DIRECT,HPS,HK,SG,US,TW,JP,KR]}
+# 策略组 
+proxy-groups:
+- {name: HPS,type: select,include-all: true}
+- {name: Proxy,type: url-test,<<: *p}
+- {name: Netflix,<<: *pg}
+- {name: Spotify,<<: *pg}
+- {name: Google,<<: *pg}
+- {name: PayPal,<<: *pg}
+- {name: OpenAI,type: select,proxies: [HPS,HK,SG,US,TW,JP,KR,☁️WARP]}
+- {name: Microsoft,<<: *pg}
+- {name: Foreign Meida,<<: *pg}
+- {name: Foreign Social,<<: *pg}
+- {name: Apple,<<: *pg}  
+- {name: Other,<<: *pg}
+# 区域组
+- {name: HK,type: url-test,<<: *p,filter: "^(?=.*((?i)\U0001F1ED\U0001F1F0|香港|港|(?i)HK|Hong))(?!.*((?i)X5|x5|10x)).*$"}
+- {name: SG,type: url-test,<<: *p,filter: "(?i)(新加坡|SG|Singapore|狮|狮城)"}
+- {name: US,type: url-test,<<: *p,filter: "(?i)(美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|US|United States)"}
+- {name: TW,type: url-test,<<: *p,filter: "(?i)(台|TW|Tai|台北|新竹|台中|桃园|台南|高雄|花莲)"}
+- {name: JP,type: url-test,<<: *p,filter: "(?i)(日本|川日|东京|大阪|泉日|埼玉|沪日|深日|JP|Japan|名古屋|福冈|仙台|京都|Japan)"}
+- {name: KR,type: url-test,<<: *p,filter: "(?i)(KR|Korea|KOR|首尔|韩|韓|南韩|南朝鲜|釜山|South Korea)"}
+
+# 规则的锚点
+domain: &domain {type: http,interval: 86400,behavior: classical,format: text}
+
+rule-providers:
+  Netflix:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Netflix/Netflix.list
+    path: "./rule_provider/Netflix.list"  
+
+  Spotify:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Spotify/Spotify.list
+    path: "./rule_provider/Spotify.list" 
+
+  Google:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.list
+    path: "./rule_provider/Google.list"
+
+  PayPal:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/PayPal/PayPal.list
+    path: "./rule_provider/PayPal.list"
+
+  OpenAI:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.list
+    path: "./rule_provider/OpenAI.list"
+
+  Microsoft:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Microsoft/Microsoft.list
+    path: "./rule_provider/Microsoft.list"
+
+  MicrosoftEdge:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/MicrosoftEdge/MicrosoftEdge.list
+    path: "./rule_provider/MicrosoftEdge.list"
+
+  YouTubeMusic:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTubeMusic/YouTubeMusic.list
+    path: "./rule_provider/YouTubeMusic.list"
+    
+  YouTube:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube.list
+    path: "./rule_provider/YouTube.list"    
+
+  HBO:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/HBO/HBO.list
+    path: "./rule_provider/HBO.list"    
+
+  Disney:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Disney/Disney.list
+    path: "./rule_provider/Disney.list"    
+
+  Facebook:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Facebook/Facebook.list
+    path: "./rule_provider/Facebook.list"    
+
+  Whatsapp:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Whatsapp/Whatsapp.list
+    path: "./rule_provider/Whatsapp.list"    
+
+  Twitter:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.list
+    path: "./rule_provider/Twitter.list"    
+
+  Telegram:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Telegram/Telegram.list
+    path: "./rule_provider/Telegram.list"
+
+  Apple:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Apple/Apple.list
+    path: "./rule_provider/Apple.list"
+
+  AppStore:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AppStore/AppStore.list
+    path: "./rule_provider/AppStore.list"
+
+  AppleID:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AppleID/AppleID.list
+    path: "./rule_provider/AppleID.list"
+
+  ApplePushNotificationService:
+    <<: *domain
+    url: https://raw.githubusercontent.com/diy97/PolicyGroup/main/Rule/OpenClash/ApplePushNotificationService.list
+    path: "./rule_provider/ApplePushNotificationService.list"
+
+  TestFlight:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/TestFlight/TestFlight.list
+    path: "./rule_provider/TestFlight.list"
+
+  iCloud:
+    <<: *domain
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/iCloud/iCloud.list
+    path: "./rule_provider/iCloud.list"
+
+  iCloudChina:
+    <<: *domain
+    url: https://raw.githubusercontent.com/diy97/PolicyGroup/main/Rule/OpenClash/iCloudChina.list
+    path: "./rule_provider/iCloudChina.list"
+    
+rules:
+- DST-PORT,22,DIRECT
+- DOMAIN-SUFFIX,dl.tailscale.com,Other
+- DOMAIN-SUFFIX,tailscale.com,DIRECT
+- DOMAIN-SUFFIX,tailscale.io,DIRECT
+- DOMAIN-SUFFIX,api.cloudflare.com,DIRECT
+- DOMAIN-SUFFIX,unraid.net,DIRECT
+- DOMAIN-SUFFIX,myunraid.net,DIRECT
+- DOMAIN-SUFFIX,curl.haxx.se,DIRECT
+- DOMAIN-SUFFIX,ip-api.com,DIRECT
+- RULE-SET,Netflix,Netflix
+- RULE-SET,Spotify,Spotify
+- RULE-SET,Google,Google
+- RULE-SET,PayPal,PayPal
+- RULE-SET,OpenAI,OpenAI
+- RULE-SET,Microsoft,Microsoft
+- RULE-SET,MicrosoftEdge,Microsoft
+- RULE-SET,YouTubeMusic,Foreign Meida
+- RULE-SET,YouTube,Foreign Meida
+- RULE-SET,HBO,Foreign Meida
+- RULE-SET,Disney,Foreign Meida
+- RULE-SET,Facebook,Foreign Social
+- RULE-SET,Whatsapp,Foreign Social
+- RULE-SET,Twitter,Foreign Social
+- RULE-SET,Telegram,Foreign Social
+- RULE-SET,Apple,Apple
+- RULE-SET,AppStore,Apple
+- RULE-SET,AppleID,Apple
+- RULE-SET,ApplePushNotificationService,Apple
+- RULE-SET,TestFlight,Apple
+- RULE-SET,iCloud,Apple
+- RULE-SET,iCloudChina,Apple
+- GEOIP,CN,DIRECT
+- MATCH,Other
