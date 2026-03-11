@@ -1,10 +1,11 @@
-const url = https://api.jijinhao.com/quoteCenter/realTime.htm?codes=JO_92233&_=${Date.now()};
+// 修正后的 URL，加上引号
+const url = `https://api.jijinhao.com/quoteCenter/realTime.htm?codes=JO_92233&_=${Date.now()}`;
 const headers = {
   "Referer": "https://m.cngold.org/",
   "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)"
 };
 
-// 品牌模拟数据（前十名）
+// 品牌模拟数据
 const brands = [
   { name: "周大福", price: 1060 },
   { name: "老凤祥", price: 1063 },
@@ -26,34 +27,35 @@ $httpClient.get({ url, headers }, function (error, response, data) {
   }
 
   try {
-    const jsonString = data.replace(/^var quote_json =/, '').trim();
-    const json = JSON.parse(jsonString);
+    // 更加稳妥的 JSON 提取方式
+    const jsonMatch = data.match(/\{.*\}/);
+    if (!jsonMatch) throw new Error("无法提取 JSON 数据");
+    
+    const json = JSON.parse(jsonMatch[0]);
     const gold = json["JO_92233"];
 
-    if (!gold  !gold.q63  !gold.q80) {
+    // 修正逻辑运算符：!gold || !gold.q63 ...
+    if (!gold || gold.q63 === undefined || gold.q80 === undefined) {
       $notification.post("黄金价格解析失败", "", "接口返回数据异常");
       $done();
       return;
     }
 
-    const spotPrice = gold.q63.toFixed(2);
-    const change = gold.q80.toFixed(2);
+    const spotPrice = parseFloat(gold.q63).toFixed(2);
+    const change = parseFloat(gold.q80).toFixed(2);
     const symbol = change >= 0 ? "📈" : "📉";
 
     const now = new Date();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const dateStr = ${month}月${day}日;
+    const dateStr = `${now.getMonth() + 1}月${now.getDate()}日`; // 使用反引号
 
-    // 构建前十排行榜内容
+    // 构建排行榜
     const list = brands.map((b, i) => {
-      const arrow = b.price > 1060 ? "↑" : b.price < 1060 ? "↓" : "";
-      return ${i + 1}. ${b.name} ${b.price}${arrow};
+      const arrow = b.price > 1060 ? "↑" : (b.price < 1060 ? "↓" : "");
+      return `${i + 1}. ${b.name} ${b.price}${arrow}`;
     }).join("\n");
 
-    const content =
-      现货黄金 ${spotPrice} 元，${symbol} ${change}%\n\n +
-      list;
+    // 格式化内容
+    const content = `现货黄金: ${spotPrice} 元\n涨跌幅: ${symbol} ${change}%\n\n${list}`;
 
     $notification.post(`黄金价格 · ${dateStr}`, "", content);
   } catch (e) {
