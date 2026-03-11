@@ -1,12 +1,12 @@
 //转自https://raw.githubusercontent.com/RS0485/network-rules/main/scripts/gas-price.js
-//适用于egern本地
+//适用于egern
 var region = "sichuan/nanchong";
 
-//const loondq = $persistentStore.read("地区");
+const loondq = $persistentStore.read("地区");
 
-//if (loondq !== undefined) {
-//  region = loondq;
-//}
+if (loondq !== undefined) {
+  region = loondq;
+}
 
 const query_addr = `http://m.qiyoujiage.com/${region}.shtml`;
 
