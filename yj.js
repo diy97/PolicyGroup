@@ -1,6 +1,6 @@
 //转自https://raw.githubusercontent.com/RS0485/network-rules/main/scripts/gas-price.js
 //适用于egern
-var region = "sichuan/nanchong";
+var region = "sichuan/chengdu";
 
 const loondq = $persistentStore.read("地区");
 
