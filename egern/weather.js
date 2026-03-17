@@ -1,7 +1,7 @@
-// iOS 风格全功能天气组件 (修复背景色报错版)
-// 功能：动态天气背景、实况、极值、舒适度、对比、建议、逐时预报
+// iOS 风格全功能天气组件 (样式精调版)
+// 功能：动态天气背景、逐时预报、风速单位转换(m/s)、极简数据层排布
 
-const CACHE_KEY = "weather_ios_style_v5";
+const CACHE_KEY = "weather_ios_style_v6";
 
 export default async function (ctx) {
     const env = ctx.env || {};
@@ -14,10 +14,7 @@ export default async function (ctx) {
 
     try {
         const data = await getAllData(ctx, host, apiKey, location);
-        
-        // 关键修复：判断当前系统是否为深色模式
         const isDark = ctx.isDarkMode || (ctx.traitCollection && ctx.traitCollection.userInterfaceStyle === "dark");
-        
         const view = transform(data, env.LOCATION_NAME || "当前位置", isDark);
         
         if (family === "systemSmall") return buildSmall(view);
@@ -32,9 +29,9 @@ export default async function (ctx) {
 // ============== 数据处理 ==============
 
 async function getAllData(ctx, host, apiKey, location) {
-    const now = Date.now();
+    const nowTs = Date.now();
     const cached = loadCache(ctx);
-    if (cached && (now - cached.ts < 1800000)) return cached;
+    if (cached && (nowTs - cached.ts < 1800000)) return cached;
 
     const [nowRes, hourlyRes, dailyRes] = await Promise.all([
         fetchJson(ctx, `${host}/v7/weather/now?location=${location}&key=${apiKey}`),
@@ -46,7 +43,7 @@ async function getAllData(ctx, host, apiKey, location) {
         now: nowRes.now,
         hourly: hourlyRes.hourly ? hourlyRes.hourly.slice(0, 8) : [], 
         today: dailyRes.daily ? dailyRes.daily[0] : null,
-        ts: now
+        ts: nowTs
     };
     saveCache(ctx, res);
     return res;
@@ -58,9 +55,12 @@ function transform(data, locName, isDark) {
     const isNight = computeIsNight(today);
     const temp = parseInt(now.temp);
     
-    // 背景颜色逻辑
     const weatherType = getWeatherType(now.icon);
     const theme = getDynamicTheme(weatherType, isNight, isDark);
+
+    // 风速转换：和风天气返回的是 km/h，转换为 m/s (1 km/h ≈ 0.28 m/s)
+    const windSpeedKmH = parseFloat(now.windSpeed || 0);
+    const windSpeedMS = (windSpeedKmH * 0.2778).toFixed(1);
 
     return {
         location: locName,
@@ -69,7 +69,7 @@ function transform(data, locName, isDark) {
         low: today ? today.tempMin + "°" : "--",
         text: now.text,
         feelsLike: now.feelsLike + "°",
-        wind: now.windScale + "级",
+        windSpeed: windSpeedMS + " m/s",
         humidity: now.humidity + "%",
         advice: getClothing(temp),
         hourly: data.hourly.map(h => ({
@@ -81,7 +81,7 @@ function transform(data, locName, isDark) {
     };
 }
 
-// ============== 动态主题逻辑 (修复核心) ==============
+// ============== 动态主题逻辑 ==============
 
 function getDynamicTheme(type, isNight, isDark) {
     const themes = {
@@ -92,25 +92,21 @@ function getDynamicTheme(type, isNight, isDark) {
     };
 
     const selected = isNight ? themes.night : (themes[type] || themes.cloudy);
-    
-    // 修复点：根据 isDark 参数，直接返回一组纯色字符串数组
     const finalBg = isDark ? selected.dark : selected.light;
-    const textColor = "#FFFFFF"; // 天气背景下通常白色文字视觉最好
-    const cardColor = isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.2)";
 
     return {
-        bg: finalBg, // 这里现在是 ["#color1", "#color2"]
-        text: textColor,
-        textMuted: "rgba(255,255,255,0.7)",
-        card: cardColor
+        bg: finalBg,
+        text: "#FFFFFF",
+        textMuted: "rgba(255,255,255,0.7)"
     };
 }
 
-// ============== UI 布局 ==============
+// ============== UI 布局 (中尺寸) ==============
 
 function buildMedium(view) {
     const theme = view.theme;
     return shell([
+        // 第一行：位置与实况
         hstack([
             vstack([
                 txt(view.location, 14, "bold", theme.text),
@@ -119,14 +115,19 @@ function buildMedium(view) {
             sp(),
             txt(view.temp, 34, "light", theme.text)
         ]),
-        sp(8),
+        sp(12),
+        // 第二行：数据展示（去掉了背景框，改为与其他行一致的透明层感）
         hstack([
-            miniItem("体感", view.feelsLike, theme), sp(),
-            miniItem("湿度", view.humidity, theme), sp(),
-            miniItem("风力", view.wind, theme), sp(),
+            miniItem("体感", view.feelsLike, theme),
+            sp(),
+            miniItem("湿度", view.humidity, theme),
+            sp(),
+            miniItem("风速", view.windSpeed, theme),
+            sp(),
             miniItem("穿衣", view.advice, theme)
-        ], { padding: [6, 10, 6, 10], backgroundColor: theme.card, borderRadius: 10 }),
-        sp(10),
+        ]),
+        sp(15),
+        // 第三行：逐时预报
         hstack(view.hourly.slice(0, 6).map(h => vstack([
             txt(h.time, 9, "medium", theme.textMuted),
             sp(4),
@@ -137,9 +138,12 @@ function buildMedium(view) {
     ], theme);
 }
 
+// ============== 辅助组件 ==============
+
 function miniItem(label, value, theme) {
     return vstack([
         txt(label, 8, "medium", theme.textMuted),
+        sp(2),
         txt(value, 10, "bold", theme.text)
     ], { alignItems: "center", width: 55 });
 }
@@ -147,24 +151,23 @@ function miniItem(label, value, theme) {
 function shell(children, theme) {
     return {
         type: "widget",
-        padding: [12, 12, 12, 12],
+        padding: [15, 15, 12, 15],
         backgroundGradient: {
             type: "linear",
-            colors: theme.bg, // 确保这里是 Array<String>
+            colors: theme.bg,
             startPoint: { x: 0, y: 0 }, endPoint: { x: 0, y: 1 }
         },
         children: children
     };
 }
 
-// ============== 基础函数 ==============
+// ============== 逻辑工具 ==============
 
 function getWeatherType(icon) {
     const c = parseInt(icon);
     if (c === 100) return "sunny";
     if (c <= 104) return "cloudy";
     if (c >= 300 && c <= 399) return "rainy";
-    if (c >= 400 && c <= 499) return "snowy";
     return "others";
 }
 
@@ -191,6 +194,7 @@ function computeIsNight(today) {
     return now > ss || now < sr;
 }
 
+// 标准函数
 function hstack(children, opts = {}) { return { type: "stack", direction: "row", alignItems: "center", children, ...opts }; }
 function vstack(children, opts = {}) { return { type: "stack", direction: "column", alignItems: "start", children, ...opts }; }
 function txt(text, size, weight, color) { return { type: "text", text: String(text), font: { size, weight }, textColor: color }; }
