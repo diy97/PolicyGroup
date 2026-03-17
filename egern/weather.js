@@ -1,7 +1,7 @@
-// iOS 风格全功能天气组件
+// iOS 风格全功能天气组件 (修复背景色报错版)
 // 功能：动态天气背景、实况、极值、舒适度、对比、建议、逐时预报
 
-const CACHE_KEY = "weather_ios_style_v4";
+const CACHE_KEY = "weather_ios_style_v5";
 
 export default async function (ctx) {
     const env = ctx.env || {};
@@ -14,12 +14,17 @@ export default async function (ctx) {
 
     try {
         const data = await getAllData(ctx, host, apiKey, location);
-        const view = transform(data, env.LOCATION_NAME || "当前位置");
+        
+        // 关键修复：判断当前系统是否为深色模式
+        const isDark = ctx.isDarkMode || (ctx.traitCollection && ctx.traitCollection.userInterfaceStyle === "dark");
+        
+        const view = transform(data, env.LOCATION_NAME || "当前位置", isDark);
         
         if (family === "systemSmall") return buildSmall(view);
         if (family === "systemLarge") return buildLarge(view);
         return buildMedium(view);
     } catch (e) {
+        console.log("Error: " + e.message);
         return errorWidget("获取失败", e.message);
     }
 }
@@ -39,34 +44,33 @@ async function getAllData(ctx, host, apiKey, location) {
 
     const res = {
         now: nowRes.now,
-        hourly: hourlyRes.hourly.slice(0, 8), // 取前8小时
-        today: dailyRes.daily[0],
+        hourly: hourlyRes.hourly ? hourlyRes.hourly.slice(0, 8) : [], 
+        today: dailyRes.daily ? dailyRes.daily[0] : null,
         ts: now
     };
     saveCache(ctx, res);
     return res;
 }
 
-function transform(data, locName) {
+function transform(data, locName, isDark) {
     const now = data.now;
     const today = data.today;
     const isNight = computeIsNight(today);
     const temp = parseInt(now.temp);
     
-    // 背景颜色逻辑：跟随天气类型 (iOS 风格渐变)
+    // 背景颜色逻辑
     const weatherType = getWeatherType(now.icon);
-    const theme = getDynamicTheme(weatherType, isNight);
+    const theme = getDynamicTheme(weatherType, isNight, isDark);
 
     return {
         location: locName,
         temp: temp + "°",
-        high: today.tempMax + "°",
-        low: today.tempMin + "°",
+        high: today ? today.tempMax + "°" : "--",
+        low: today ? today.tempMin + "°" : "--",
         text: now.text,
         feelsLike: now.feelsLike + "°",
         wind: now.windScale + "级",
         humidity: now.humidity + "%",
-        comfort: "舒适", // 可根据算法计算
         advice: getClothing(temp),
         hourly: data.hourly.map(h => ({
             time: h.fxTime.split('T')[1].split(':')[0] + "时",
@@ -77,18 +81,9 @@ function transform(data, locName) {
     };
 }
 
-// ============== 动态主题逻辑 ==============
+// ============== 动态主题逻辑 (修复核心) ==============
 
-function getWeatherType(icon) {
-    const c = parseInt(icon);
-    if (c === 100) return "sunny";
-    if (c <= 104) return "cloudy";
-    if (c >= 300 && c <= 399) return "rainy";
-    if (c >= 400 && c <= 499) return "snowy";
-    return "others";
-}
-
-function getDynamicTheme(type, isNight) {
+function getDynamicTheme(type, isNight, isDark) {
     const themes = {
         sunny: { light: ["#4FA1FB", "#80C4F9"], dark: ["#1D3B5A", "#0B1220"] },
         cloudy: { light: ["#89A3B3", "#B1C5D3"], dark: ["#37474F", "#1C252A"] },
@@ -98,23 +93,24 @@ function getDynamicTheme(type, isNight) {
 
     const selected = isNight ? themes.night : (themes[type] || themes.cloudy);
     
+    // 修复点：根据 isDark 参数，直接返回一组纯色字符串数组
+    const finalBg = isDark ? selected.dark : selected.light;
+    const textColor = "#FFFFFF"; // 天气背景下通常白色文字视觉最好
+    const cardColor = isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.2)";
+
     return {
-        bg: [
-            { light: selected.light[0], dark: selected.dark[0] },
-            { light: selected.light[1], dark: selected.dark[1] }
-        ],
-        text: { light: "#FFFFFF", dark: "#E0E0E0" },
-        textMuted: { light: "rgba(255,255,255,0.7)", dark: "rgba(255,255,255,0.5)" },
-        card: { light: "rgba(255,255,255,0.15)", dark: "rgba(0,0,0,0.2)" }
+        bg: finalBg, // 这里现在是 ["#color1", "#color2"]
+        text: textColor,
+        textMuted: "rgba(255,255,255,0.7)",
+        card: cardColor
     };
 }
 
-// ============== UI 布局 (中尺寸) ==============
+// ============== UI 布局 ==============
 
 function buildMedium(view) {
     const theme = view.theme;
     return shell([
-        // 第一行：位置与实况状态
         hstack([
             vstack([
                 txt(view.location, 14, "bold", theme.text),
@@ -124,7 +120,6 @@ function buildMedium(view) {
             txt(view.temp, 34, "light", theme.text)
         ]),
         sp(8),
-        // 第二行：数据网格（字体变小，横向排布）
         hstack([
             miniItem("体感", view.feelsLike, theme), sp(),
             miniItem("湿度", view.humidity, theme), sp(),
@@ -132,7 +127,6 @@ function buildMedium(view) {
             miniItem("穿衣", view.advice, theme)
         ], { padding: [6, 10, 6, 10], backgroundColor: theme.card, borderRadius: 10 }),
         sp(10),
-        // 第三行：逐时预报（水平滚动感）
         hstack(view.hourly.slice(0, 6).map(h => vstack([
             txt(h.time, 9, "medium", theme.textMuted),
             sp(4),
@@ -142,8 +136,6 @@ function buildMedium(view) {
         ], { flex: 1, alignItems: "center" })))
     ], theme);
 }
-
-// ============== 辅助组件 ==============
 
 function miniItem(label, value, theme) {
     return vstack([
@@ -158,14 +150,23 @@ function shell(children, theme) {
         padding: [12, 12, 12, 12],
         backgroundGradient: {
             type: "linear",
-            colors: theme.bg,
+            colors: theme.bg, // 确保这里是 Array<String>
             startPoint: { x: 0, y: 0 }, endPoint: { x: 0, y: 1 }
         },
         children: children
     };
 }
 
-// ============== 逻辑工具 ==============
+// ============== 基础函数 ==============
+
+function getWeatherType(icon) {
+    const c = parseInt(icon);
+    if (c === 100) return "sunny";
+    if (c <= 104) return "cloudy";
+    if (c >= 300 && c <= 399) return "rainy";
+    if (c >= 400 && c <= 499) return "snowy";
+    return "others";
+}
 
 function getClothing(temp) {
     if (temp >= 28) return "短袖";
@@ -190,7 +191,6 @@ function computeIsNight(today) {
     return now > ss || now < sr;
 }
 
-// 标准函数
 function hstack(children, opts = {}) { return { type: "stack", direction: "row", alignItems: "center", children, ...opts }; }
 function vstack(children, opts = {}) { return { type: "stack", direction: "column", alignItems: "start", children, ...opts }; }
 function txt(text, size, weight, color) { return { type: "text", text: String(text), font: { size, weight }, textColor: color }; }
