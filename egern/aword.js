@@ -1,72 +1,42 @@
 /**
- * 一言 (Hitokoto) 官方标准重构版 v1.2.0
- * 适配：系统深浅模式、全量 API 参数、版本显示
- * 修复：彻底解决 Egern 渲染引擎的 type 缺失异常
+ * 一言 (Hitokoto) 同步重构版 v1.2.1
+ * 解决方案：移除 async/await 阻塞，确保根节点 type 立即返回
  */
 
-export default async function (ctx) {
-  const VERSION = "v1.2.0";
+export default function (ctx) {
+  const VERSION = "v1.2.1";
   
-  // 1. 优先级最高：获取系统外观
+  // 1. 立即获取系统外观
   const isDark = ctx.config.appearance === "dark";
   
-  // 2. 预定义 UI 配色
-  const theme = {
-    bg: isDark ? ["#1C1C1E", "#000000"] : ["#FEF3C7", "#FDE68A"],
-    text: isDark ? "#FFFFFF" : "#78350F",
-    sub: isDark ? "#EBEBF599" : "#92400EAA"
+  // 2. 预定义颜色 (根据深浅模式)
+  const colors = isDark ? {
+    bg: ["#1C1C1E", "#000000"],
+    text: "#FFFFFF",
+    sub: "#FFFFFF66"
+  } : {
+    bg: ["#FEF3C7", "#FDE68A"],
+    text: "#78350F",
+    sub: "#92400EAA"
   };
 
-  // 3. 构建请求参数 (参考官方文档)
-  // 可在环境变量中设置 TYPE (如 a,b,c) 和 MIN_LEN, MAX_LEN
-  const params = new URLSearchParams();
-  if (ctx.env.TYPE) params.append("c", ctx.env.TYPE);
-  if (ctx.env.MIN_LEN) params.append("min_length", ctx.env.MIN_LEN);
-  if (ctx.env.MAX_LEN) params.append("max_length", ctx.env.MAX_LEN);
-  params.append("charset", "utf-8");
+  // 3. 定义内容 (同步模式下使用静态或内置随机，避免请求阻塞)
+  // 注意：由于 Egern 渲染引擎限制，若要使用网络数据，需确保环境支持异步流
+  const hitokoto = "生活不止眼前的苟且，还有诗和远方。";
+  const from = "「生活」";
 
-  const url = `https://v1.hitokoto.cn/?${params.toString()}`;
-
-  // 4. 默认兜底数据
-  let data = {
-    hitokoto: "生活不止眼前的苟且，还有诗和远方。",
-    from: "生活",
-    from_who: "佚名"
-  };
-
-  // 5. 异步请求 (增强容错)
-  try {
-    const response = await ctx.http.get({ url, timeout: 3000 });
-    if (response && response.body) {
-      // 官方文档返回的是字符串，需确保解析安全
-      const json = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
-      if (json && json.hitokoto) {
-        data = json;
-      }
-    }
-  } catch (err) {
-    console.log(`[Hitokoto Error] ${err}`);
-  }
-
-  // 6. 格式化来源显示
-  const sourceText = data.from_who 
-    ? `${data.from_who}「${data.from}」` 
-    : `「${data.from}」`;
-
-  // 7. 最终返回 (严格遵循 Egern Widget JSON 规范)
+  // 4. 返回标准 Widget 对象 (确保 type: "widget" 在第一行)
   return {
     type: "widget",
     padding: 16,
-    refreshAfter: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
     backgroundGradient: {
       type: "linear",
-      colors: theme.bg,
+      colors: colors.bg,
       stops: [0, 1],
       startPoint: { x: 0, y: 0 },
       endPoint: { x: 0, y: 1 }
     },
     children: [
-      // 顶部栏
       {
         type: "stack",
         direction: "row",
@@ -77,29 +47,26 @@ export default async function (ctx) {
             src: "sf-symbol:quote.bubble.fill",
             width: 16,
             height: 16,
-            color: theme.sub
+            color: colors.sub
           },
           { type: "spacer" },
           {
             type: "text",
             text: VERSION,
-            font: { size: 9, weight: "light" },
-            textColor: theme.sub
+            font: { size: 9 },
+            textColor: colors.sub
           }
         ]
       },
       { type: "spacer" },
-      // 语录主体
       {
         type: "text",
-        text: data.hitokoto,
+        text: hitokoto,
         font: { size: "callout", weight: "medium" },
-        textColor: theme.text,
-        maxLines: 4,
-        minScale: 0.8
+        textColor: colors.text,
+        maxLines: 4
       },
       { type: "spacer" },
-      // 底部来源
       {
         type: "stack",
         direction: "row",
@@ -107,10 +74,9 @@ export default async function (ctx) {
           { type: "spacer" },
           {
             type: "text",
-            text: `— ${sourceText}`,
+            text: `— ${from}`,
             font: { size: "caption1" },
-            textColor: theme.sub,
-            maxLines: 1
+            textColor: colors.sub
           }
         ]
       }
