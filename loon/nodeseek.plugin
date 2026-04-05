@@ -1,7 +1,7 @@
 #!name=NodeSeek 签到增强版
 #!desc=NodeSeek 论坛每日自动签到，支持 TG 推送。开启抓取开关后访问个人主页即可获取 Cookie。
-#!author=Roddy-D
-#!date=2026-03-16
+#!author=Roddy-D、diy97
+#!date=2026-04-05
 #!tag=签到,NodeSeek
 
 [Argument]
