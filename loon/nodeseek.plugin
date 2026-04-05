@@ -6,7 +6,7 @@
 
 [Argument]
 ENABLE_CAPTURE = switch,true,tag=开启Cookie抓取,desc=true: 打开后去 NodeSeek 个人中心可自动抓取 Cookie，抓到后请关闭 | false: 关闭抓取
-CRON_TIME = input,"1 0 * * *",tag=签到执行时间,desc=默认每晚一点执行，格式如 1 0 * * *
+CRON_TIME = input,"0 9 * * *",tag=签到执行时间,desc=默认每晚一点执行，格式如 1 0 * * *
 NS_COOKIE = input,"",tag=NodeSeek Cookie,desc=抓取后会自动保存至本地。若手动配置，填写完整 Cookie 字符串
 TG_BOT_TOKEN = input,"",tag=TG Bot Token,desc=选填，Telegram 机器人的 Token
 TG_USER_ID = input,"",tag=TG User ID,desc=选填，接收消息的 Telegram User ID
