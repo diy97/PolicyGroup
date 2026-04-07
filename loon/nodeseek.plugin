@@ -1,20 +1,28 @@
 #!name=NodeSeek 签到增强版
 #!desc=NodeSeek 论坛每日自动签到，支持 TG 推送。开启抓取开关后访问个人主页即可获取 Cookie。
-#!author=Roddy-D、diy97
-#!date=2026-04-06a
+#!author=Roddy-D
+#!date=2026-04-07
 #!tag=签到,NodeSeek
 
 [Argument]
 ENABLE_CAPTURE = switch,true,tag=开启Cookie抓取,desc=true: 打开后去 NodeSeek 个人中心可自动抓取 Cookie，抓到后请关闭 | false: 关闭抓取
-CRON_TIME = input,"0 9 * * *",tag=签到执行时间,desc=默认每晚一点执行，格式如 1 0 * * *
+CRON_TIME = input,"1 0 * * *",tag=签到执行时间,desc=默认每晚一点执行，格式如 1 0 * * *
 NS_COOKIE = input,"",tag=NodeSeek Cookie,desc=抓取后会自动保存至本地。若手动配置，填写完整 Cookie 字符串
 TG_BOT_TOKEN = input,"",tag=TG Bot Token,desc=选填，Telegram 机器人的 Token
 TG_USER_ID = input,"",tag=TG User ID,desc=选填，接收消息的 Telegram User ID
-TG_NOTIFY_ONLY_FAIL = switch,true,tag=仅失败时通知,desc=false: 所有结果都推送 TG | true: 仅失败/风控/异常时推送
-RANDOM_REWARD = switch,true,tag=随机奖励模式,desc=false: 固定保底奖励 | true: 随机抽奖模式
+TG_NOTIFY_ONLY_FAIL = switch,false,tag=仅失败时通知,desc=false: 所有结果都推送 TG | true: 仅失败/风控/异常时推送
+RANDOM_REWARD = switch,false,tag=随机奖励模式,desc=false: 固定保底奖励 | true: 随机抽奖模式
 
 [Script]
+# http-request: 仅传 ENABLE_CAPTURE 和 NS_COOKIE
+# NS_COOKIE 单独用 NS_COOKIE= 传递，脚本端读取后立即存入 $persistentStore
+# 注意：NS_COOKIE 必须放在 argument 末尾，因为其值含 & = 等特殊字符，
+# 解析时取 indexOf("NS_COOKIE=") 之后的全部内容作为 Cookie 值，不会被截断
 http-request ^https:\/\/www\.nodeseek\.com\/api\/account\/getInfo\/\d+\?readme=1$ script-path=https://raw.githubusercontent.com/Roddy-D/modules/refs/heads/main/nscheckin.js,tag=NS签到获取Cookie,requires-body=false,argument=ENABLE_CAPTURE={ENABLE_CAPTURE}&NS_COOKIE={NS_COOKIE},enable=true
+
+# cron: TG 相关参数和奖励模式，Cookie 直接从 $persistentStore 读取
+# TG_BOT_TOKEN 含 : 符号，不影响 key=val 解析（只按第一个 = 切割）
+# TG_BOT_TOKEN 和 TG_USER_ID 放前面，switch 类型的 true/false 放最后，确保解析稳定
 cron {CRON_TIME} script-path=https://raw.githubusercontent.com/Roddy-D/modules/refs/heads/main/nscheckin.js,tag=NS签到定时执行,timeout=300,argument=TG_BOT_TOKEN={TG_BOT_TOKEN}&TG_USER_ID={TG_USER_ID}&TG_NOTIFY_ONLY_FAIL={TG_NOTIFY_ONLY_FAIL}&RANDOM_REWARD={RANDOM_REWARD},enable=true
 
 [MITM]
