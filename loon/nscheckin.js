@@ -3,27 +3,31 @@
 - ============================================================
 - NodeSeek 签到增强版脚本
 - 作者: Roddy-D
-- 更新: 2026-04-07
+- 更新: 2026-04-07a
 - 适配: Loon
 - 
 - 触发方式:
 - - http-request : 抓取并持久化 NodeSeek Cookie
 - - cron         : 定时执行签到，支持 TG 推送
 - 
-- ── $argument 解析说明 ────────────────────────────────────
-- Loon 中 $argument 是纯字符串，格式为 key=val&key=val。
+- ── $argument 说明（来自 Loon 官方文档）─────────────────────
+- Plugin [Argument] 中声明的参数通过 argument=[{arg1},{arg2}]
+- 传入脚本，$argument 在脚本中是一个【对象】，
+- 直接用 $argument.arg1 取值，无需任何解析。
 - 
-- ⚠️ NS_COOKIE 特殊处理：
-- Cookie 字符串本身含大量 & 和 = 特殊字符，
-- 必须放在 argument 末尾，并用专用函数截取，
-- 不能用普通的 split(”&”) 解析，否则会被截断。
+- http-request argument=[{ENABLE_CAPTURE},{NS_COOKIE}]
+- $argument.ENABLE_CAPTURE - switch 类型，布尔值 true/false
+- $argument.NS_COOKIE      - input 类型，字符串
 - 
-- ⚠️ TG_BOT_TOKEN 含 : 符号（如 123456:ABCdef），
-- 使用 indexOf(”=”) 只切第一个等号，不受影响。
+- cron argument=[{TG_BOT_TOKEN},{TG_USER_ID},{TG_NOTIFY_ONLY_FAIL},{RANDOM_REWARD}]
+- $argument.TG_BOT_TOKEN        - input 类型，字符串
+- $argument.TG_USER_ID          - input 类型，字符串
+- $argument.TG_NOTIFY_ONLY_FAIL - switch 类型，布尔值 true/false
+- $argument.RANDOM_REWARD       - switch 类型，布尔值 true/false
 - 
-- ── 持久化存储 key ────────────────────────────────────────
+- ── 持久化存储 key ────────────────────────────────────────────
 - NS_COOKIE        - Cookie 字符串
-- NS_COOKIE_EXPIRY - Cookie 过期时间戳(ms)
+- NS_COOKIE_EXPIRY - Cookie 过期时间戳 (ms)
 - ============================================================
   */
 
@@ -40,60 +44,18 @@ const COOKIE_CACHE_KEY  = “NS_COOKIE”;
 const COOKIE_EXPIRY_KEY = “NS_COOKIE_EXPIRY”;
 
 // ============================================================
-// 参数解析工具函数
+// 参数解析
+//
+// 官方文档明确：
+//   argument=[{arg1},{arg2}] 传入后，
+//   $argument 是对象，直接 $argument.arg1 取值。
+//   switch 类型值为布尔值 true/false（非字符串）。
+//   input  类型值为字符串。
 // ============================================================
 
 /**
 
-- 从 argument 字符串中提取普通 key=val 参数（不含特殊字符的值）。
-- 只解析 & 分隔的前 N 个参数，遇到含特殊字符的值（如 Cookie）需用专用函数。
-- 
-- 解析规则：
-- - 按 & 分割成多个 pair
-- - 每个 pair 按第一个 = 切割为 key 和 value
-- - value 中可含 : 等字符（如 TG_BOT_TOKEN），不影响解析
-- 
-- @param {string} argStr - $argument 原始字符串
-- @returns {Object<string, string>}
-  */
-  function parseArgument(argStr) {
-  const result = {};
-  if (!argStr || typeof argStr !== “string”) return result;
-  argStr.split(”&”).forEach(pair => {
-  const idx = pair.indexOf(”=”);
-  if (idx === -1) return;
-  const key = pair.slice(0, idx).trim();
-  const val = pair.slice(idx + 1).trim();
-  if (key) result[key] = val;
-  });
-  return result;
-  }
-
-/**
-
-- 从 argument 字符串中安全提取 NS_COOKIE 的值。
-- 
-- Cookie 字符串含大量 & 和 = 特殊字符，普通 split(”&”) 会把 Cookie 截断。
-- 此函数定位 “NS_COOKIE=” 的起始位置，取其后全部内容作为 Cookie 值，
-- 再截止到下一个已知参数 key（如有）之前，确保完整性。
-- 
-- 设计约定：NS_COOKIE 必须放在 argument 的末尾，这样直接取到字符串结尾即可。
-- 
-- @param {string} argStr - $argument 原始字符串
-- @returns {string} Cookie 值，未找到时返回空字符串
-  */
-  function extractCookie(argStr) {
-  if (!argStr || typeof argStr !== “string”) return “”;
-  const marker = “NS_COOKIE=”;
-  const idx = argStr.indexOf(marker);
-  if (idx === -1) return “”;
-  // NS_COOKIE 放末尾，直接取到字符串结尾
-  return argStr.slice(idx + marker.length).trim();
-  }
-
-/**
-
-- 判断参数值是否为有效输入（过滤空值及常见无效占位符）。
+- 判断 input 类型参数是否为有效值（过滤空值及占位符）
   */
   const isValid = (val) =>
   val !== undefined &&
@@ -103,64 +65,40 @@ const COOKIE_EXPIRY_KEY = “NS_COOKIE_EXPIRY”;
   String(val).trim() !== “无” &&
   String(val).trim().toLowerCase() !== “none”;
 
-/**
-
-- 将各种形式的布尔表示统一解析为 JS 布尔值。
-- 
-- Loon switch 参数展开后为字符串 “true” 或 “false”，
-- 不是 JS 布尔值，必须显式转换。
-- 同时兼容 true/“true”/“1”/1（兼容不同 Loon 版本行为）。
-  */
-  const parseBool = (val) => {
-  if (val === true  || val === 1)       return true;
-  if (val === false || val === 0)       return false;
-  if (typeof val === “string”) {
-  const s = val.trim().toLowerCase();
-  return s === “true” || s === “1”;
-  }
-  return false;
-  };
-
-// ============================================================
-// 解析 $argument
-// ============================================================
 if (typeof $argument !== “undefined” && $argument) {
-console.log(”[NS签到] 原始 $argument: “ + $argument);
+// $argument 是对象，直接按 key 读取，无需 JSON.parse 或字符串分割
+console.log(”[NS签到] $argument 类型: “ + typeof $argument);
+console.log(”[NS签到] $argument 内容: “ + JSON.stringify($argument));
 
 ```
-// 先用通用解析器提取所有 key=val 参数
-// NS_COOKIE 因含特殊字符，由专用函数单独提取
-const args = parseArgument($argument);
-console.log("[NS签到] 通用解析结果: " + JSON.stringify(args));
-
 // ── http-request 阶段参数 ──────────────────────────────
-// ENABLE_CAPTURE: switch 类型，Loon 展开后为字符串 "true"/"false"
-if (args.ENABLE_CAPTURE !== undefined) {
-    enableCapture = parseBool(args.ENABLE_CAPTURE);
+// ENABLE_CAPTURE: switch 类型，布尔值
+if ($argument.ENABLE_CAPTURE !== undefined) {
+    enableCapture = !!$argument.ENABLE_CAPTURE;
 }
 
-// NS_COOKIE: 含特殊字符，用专用函数安全提取
-// 提取后立即写入 $persistentStore，cron 阶段直接从存储读取
-const rawCookie = extractCookie($argument);
-if (isValid(rawCookie)) {
-    $persistentStore.write(rawCookie, COOKIE_CACHE_KEY);
-    console.log("[NS签到] 手动 Cookie 已写入存储: " + rawCookie.substring(0, 30) + "...");
+// NS_COOKIE: input 类型，字符串
+// Cookie 含特殊字符（& = 等），但通过对象属性传递不存在解析问题
+// 取到后立即写入 $persistentStore，cron 阶段统一从存储读取
+if (isValid($argument.NS_COOKIE)) {
+    const manualCookie = String($argument.NS_COOKIE);
+    $persistentStore.write(manualCookie, COOKIE_CACHE_KEY);
+    console.log("[NS签到] 手动 Cookie 已写入存储: " + manualCookie.substring(0, 30) + "...");
 }
 
 // ── cron 阶段参数 ─────────────────────────────────────
-// TG_BOT_TOKEN: input 类型，含 : 符号，但 parseArgument 按首个 = 切割，不受影响
-tgToken  = isValid(args.TG_BOT_TOKEN) ? String(args.TG_BOT_TOKEN) : "";
-tgUserId = isValid(args.TG_USER_ID)   ? String(args.TG_USER_ID)   : "";
+// input 类型：字符串
+tgToken  = isValid($argument.TG_BOT_TOKEN) ? String($argument.TG_BOT_TOKEN) : "";
+tgUserId = isValid($argument.TG_USER_ID)   ? String($argument.TG_USER_ID)   : "";
 
-// switch 类型参数必须用 parseBool 转换，不能直接判断字符串真值
-// 因为字符串 "false" 在 JS 中是 truthy，直接 if("false") 永远为 true
-notifyOnlyFail  = parseBool(args.TG_NOTIFY_ONLY_FAIL);
-useRandomReward = parseBool(args.RANDOM_REWARD);
+// switch 类型：布尔值，直接用 !! 转换确保是布尔
+notifyOnlyFail  = !!$argument.TG_NOTIFY_ONLY_FAIL;
+useRandomReward = !!$argument.RANDOM_REWARD;
 
 console.log("[NS签到] 参数解析完成 =>" +
-    " enableCapture=" + enableCapture +
-    " | tgToken=" + (tgToken ? "已配置(" + tgToken.substring(0, 8) + "...)" : "未配置") +
-    " | tgUserId=" + (tgUserId ? "已配置" : "未配置") +
+    " enableCapture="   + enableCapture +
+    " | tgToken="       + (tgToken  ? "已配置(" + tgToken.substring(0, 8) + "...)" : "未配置") +
+    " | tgUserId="      + (tgUserId ? "已配置" : "未配置") +
     " | notifyOnlyFail=" + notifyOnlyFail +
     " | useRandomReward=" + useRandomReward);
 ```
@@ -168,7 +106,7 @@ console.log("[NS签到] 参数解析完成 =>" +
 }
 
 // ============================================================
-// 执行入口判断
+// 执行入口
 // $request 存在  => http-request 触发（抓取 Cookie）
 // $request 不存在 => cron 触发（执行签到）
 // ============================================================
@@ -177,9 +115,7 @@ const isGetHeader = typeof $request !== “undefined”;
 /**
 
 - 异步 IIFE 主入口。
-- Loon 要求：所有异步逻辑完成后必须调用 $done()，
-- 否则脚本引擎不释放资源。
-- .finally() 确保无论成功或异常都会触发。
+- Loon 要求所有逻辑完成后必须调用 $done()，否则引擎不释放资源。
   */
   (async () => {
   if (isGetHeader) {
@@ -188,6 +124,8 @@ const isGetHeader = typeof $request !== “undefined”;
   await handleCheckin();
   }
   })().finally(() => {
+  // http-request: $done({}) 表示放行原请求不做修改
+  // cron:        $done({}) 表示脚本正常结束释放资源
   $done({});
   });
 
@@ -217,6 +155,7 @@ if (!cookie) {
     return;
 }
 
+// 持久化保存抓取到的 Cookie
 const success = $persistentStore.write(cookie, COOKIE_CACHE_KEY);
 
 // 从 smac 字段推算 30 天后的过期时间
@@ -225,7 +164,7 @@ try {
     const smacMatch = cookie.match(/smac\s*=\s*(\d+)-/);
     if (smacMatch && smacMatch[1]) {
         const loginTs  = parseInt(smacMatch[1]) * 1000;
-        const expiryTs = loginTs + 2592000000; // 30天
+        const expiryTs = loginTs + 2592000000; // 30天 ms
         $persistentStore.write(String(expiryTs), COOKIE_EXPIRY_KEY);
         expiryDateStr = formatDate(new Date(expiryTs));
         console.log("[NS签到] ✨ 过期时间: " + expiryDateStr);
@@ -254,11 +193,12 @@ if (success) {
 // 2. 签到核心逻辑（cron 触发）
 // ============================================================
 async function handleCheckin() {
+// 先检测 Cookie 是否即将/已过期
 await checkCookieExpiry();
 
 ```
 // cron 阶段统一从 $persistentStore 读取 Cookie
-// 不从 argument 传入，避免 Cookie 含特殊字符导致解析错误
+// 手动填写的 Cookie 在 http-request 阶段已写入存储
 const finalCookie = $persistentStore.read(COOKIE_CACHE_KEY);
 
 if (!finalCookie) {
@@ -269,7 +209,7 @@ if (!finalCookie) {
     return;
 }
 
-// useRandomReward 由 parseBool 正确解析，此处直接使用
+// useRandomReward 由 $argument.RANDOM_REWARD 布尔值直接赋值
 const url = "https://www.nodeseek.com/api/attendance?random=" + useRandomReward;
 console.log("[NS签到] 签到 URL: " + url);
 
@@ -288,7 +228,7 @@ try {
     const resp = await fetchPromise({ url: url, method: "POST", headers: headers, body: "" });
     await processResponse(resp);
 } catch (error) {
-    const errStr = error && (error.error || error.message) ? (error.error || error.message) : String(error);
+    const errStr = (error && (error.error || error.message)) ? (error.error || error.message) : String(error);
     console.log("[NS签到] 网络请求异常: " + errStr);
     $notification.post("NS签到结果", "⚠️ 网络请求异常", errStr);
     await sendTgNotify("<b>⚠️ NodeSeek 签到网络异常</b>\n\n详情:\n<code>" + escapeHtml(errStr) + "</code>");
@@ -308,7 +248,7 @@ let msg = “”;
 ```
 try {
     const obj = JSON.parse(body);
-    msg = obj && obj.message ? String(obj.message) : "";
+    msg = (obj && obj.message) ? String(obj.message) : "";
     console.log("[NS签到] JSON message: " + (msg || "无"));
 } catch (e) {
     console.log("[NS签到] 响应体非 JSON: " + body.substring(0, 150));
@@ -324,7 +264,7 @@ if (status >= 200 && status < 300) {
     if (!notifyOnlyFail) {
         await sendTgNotify("<b>🎉 NodeSeek 自动签到成功</b>\n\n状态码: " + status + "\n返回信息：\n<code>" + escapeHtml(notifyStr) + "</code>");
     } else {
-        console.log("[NS签到] notifyOnlyFail=true，签到成功不推送 TG。");
+        console.log("[NS签到] notifyOnlyFail=true，成功不推送 TG。");
     }
 
 } else if (status === 403) {
@@ -354,21 +294,20 @@ if (status >= 200 && status < 300) {
 
 - 将 $httpClient 回调 API 封装为 Promise，支持 async/await。
 - 
-- Loon $httpClient 回调签名：(error, response, data)
+- Loon $httpClient 回调签名：callback(error, response, data)
 - error    - 网络错误字符串，成功为 null
 - response - { status, headers }
-- data     - 响应 body（字符串或二进制）
+- data     - 响应 body 字符串
   */
   function fetchPromise(request) {
   return new Promise(function(resolve, reject) {
-  const method = (request.method || “GET”).toUpperCase();
-  const options = {
-  url:     request.url,
-  headers: request.headers || {}
-  };
+  const method  = (request.method || “GET”).toUpperCase();
+  const options = { url: request.url, headers: request.headers || {} };
+  
   if (request.body !== undefined && request.body !== null) {
   options.body = request.body;
   }
+  
   const callback = function(error, response, data) {
   if (error) {
   reject(error);
@@ -380,6 +319,7 @@ if (status >= 200 && status < 300) {
   });
   }
   };
+  
   if (method === “POST”) {
   $httpClient.post(options, callback);
   } else {
@@ -404,7 +344,7 @@ if (status >= 200 && status < 300) {
 
 /**
 
-- 格式化 Date 为本地时间 YYYY-MM-DD HH:mm。
+- 格式化 Date 为本地时间字符串 YYYY-MM-DD HH:mm。
   */
   function formatDate(date) {
   const y = date.getFullYear();
@@ -417,11 +357,11 @@ if (status >= 200 && status < 300) {
 
 /**
 
-- 检测 Cookie 过期状态并推送预警通知。
+- 检测 Cookie 过期状态并推送预警。
 - 
-- 已过期 (remainMs <= 0)  => 🔴 本地通知 + TG
-- 不足48小时 (< 48h)      => 🟡 本地通知 + TG
-- 正常                    => 仅打印日志
+- 已过期 (remainMs <= 0)    => 🔴 本地通知 + TG
+- 不足 48 小时 (< 48h)      => 🟡 本地通知 + TG
+- 正常                      => 仅打印日志
   */
   async function checkCookieExpiry() {
   const cachedExpiry = $persistentStore.read(COOKIE_EXPIRY_KEY);
@@ -429,6 +369,7 @@ if (status >= 200 && status < 300) {
   console.log(”[NS签到] 未检测到过期时间缓存，跳过检测。”);
   return;
   }
+  
   const expiryMs = parseInt(cachedExpiry);
   if (isNaN(expiryMs)) return;
   
@@ -498,7 +439,7 @@ if (status >= 200 && status < 300) {
   ```
   
   } catch (error) {
-  const errStr = error && (error.error || error.message) ? (error.error || error.message) : String(error);
+  const errStr = (error && (error.error || error.message)) ? (error.error || error.message) : String(error);
   console.log(”[TG_Notify] ❌ 推送网络异常: “ + errStr);
   }
   }
