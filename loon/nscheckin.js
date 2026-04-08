@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * NodeSeek 签到增强版脚本
- * 版本: 2.0.0
+ * 版本: 2.1.0
  * 日期: 2026-04-08
  * 作者: nobody
  * 适配: Loon
@@ -10,26 +10,32 @@
  *   - http-request : 抓取并持久化 NodeSeek Cookie
  *   - cron         : 定时执行签到，支持 TG 推送
  *
- * ── Loon 参数读取说明 ─────────────────────────────────────────
- * Loon 插件 [Argument] 声明的参数有两种读取方式：
+ * ── Loon [Argument] 参数传递机制（官方文档）─────────────────
+ * 插件使用新系统 [Argument]（build 733+）：
  *
- *   方式一：$argument（字符串，内容为 [val1,val2] 格式，不可靠）
- *   方式二：$persistentStore.read(key)
- *           Loon 会将 [Argument] 的每个参数以【变量名】为 key
- *           自动写入持久化存储，这是最稳定的读取方式。
+ *   Plugin [Script] 写法：argument=[{arg1},{arg2}]
+ *   脚本读取写法：    $argument.arg1
  *
- * 本脚本统一使用 $persistentStore.read(key) 读取所有参数，
- * 彻底避免 $argument 格式歧义导致的解析错误。
+ * $argument 是【对象】，每个 key 对应 [Argument] 中的变量名。
+ * - input  类型：值为字符串
+ * - switch 类型：值为布尔值 true / false
  *
- * ── 持久化存储 key 一览 ───────────────────────────────────────
- *   ENABLE_CAPTURE      - 是否开启抓取 "true"/"false"
- *   NS_COOKIE           - 手动填写的 Cookie
- *   TG_BOT_TOKEN        - TG Bot Token
- *   TG_USER_ID          - TG User ID
- *   TG_NOTIFY_ONLY_FAIL - 仅失败时推送 "true"/"false"
- *   RANDOM_REWARD       - 随机奖励模式 "true"/"false"
- *   NS_COOKIE           - 抓取/手动保存的 Cookie（签到使用）
- *   NS_COOKIE_EXPIRY    - Cookie 过期时间戳 (ms)
+ * 注意：$argument 不是字符串，绝对不能 JSON.parse()。
+ *
+ * ── 参数分配 ─────────────────────────────────────────────────
+ * http-request argument=[{ENABLE_CAPTURE},{NS_COOKIE}]
+ *   $argument.ENABLE_CAPTURE  switch  是否开启抓取
+ *   $argument.NS_COOKIE       input   手动填写的 Cookie
+ *
+ * cron argument=[{TG_BOT_TOKEN},{TG_USER_ID},{TG_NOTIFY_ONLY_FAIL},{RANDOM_REWARD}]
+ *   $argument.TG_BOT_TOKEN        input   TG Bot Token
+ *   $argument.TG_USER_ID          input   TG User ID
+ *   $argument.TG_NOTIFY_ONLY_FAIL switch  仅失败时推送
+ *   $argument.RANDOM_REWARD       switch  随机奖励模式
+ *
+ * ── 持久化存储 key ────────────────────────────────────────────
+ *   NS_COOKIE        Cookie 字符串（抓取/手动填写后存入）
+ *   NS_COOKIE_EXPIRY Cookie 过期时间戳 (ms)
  * ============================================================
  */
 
@@ -40,65 +46,89 @@ const COOKIE_CACHE_KEY  = "NS_COOKIE";
 const COOKIE_EXPIRY_KEY = "NS_COOKIE_EXPIRY";
 
 // ============================================================
-// 全局参数读取
+// 全局变量默认值
+// ============================================================
+let enableCapture   = true;   // 默认开启 Cookie 抓取
+let useRandomReward = false;  // 默认固定保底奖励
+let notifyOnlyFail  = false;  // 默认全部推送
+let tgToken         = "";
+let tgUserId        = "";
+
+// ============================================================
+// 参数解析
 //
-// 所有 [Argument] 参数统一通过 $persistentStore.read(key) 读取。
-// Loon 在加载插件时会将用户配置的参数值自动写入持久化存储，
-// key 即为 [Argument] 中声明的变量名。
+// 官方文档：argument=[{arg1},{arg2}] 传入后，
+// $argument 是对象，直接 $argument.arg1 取值。
+// - switch 类型：布尔值 true/false
+// - input  类型：字符串
+//
+// 两个脚本触发时 $argument 携带的 key 不同：
+//   http-request 携带：ENABLE_CAPTURE, NS_COOKIE
+//   cron         携带：TG_BOT_TOKEN, TG_USER_ID,
+//                      TG_NOTIFY_ONLY_FAIL, RANDOM_REWARD
+// 访问另一方没有的 key 时值为 undefined，属正常现象。
 // ============================================================
 
 /**
- * 从持久化存储读取参数，并打印调试日志。
- * @param {string} key
- * @returns {string|null}
- */
-function readParam(key) {
-    const val = $persistentStore.read(key);
-    console.log("[NS签到] readParam(" + key + ") = " + val);
-    return val;
-}
-
-/**
- * 将存储中的字符串值解析为布尔值。
- * Loon switch 类型存储为字符串 "true" 或 "false"。
- * @param {string|null} val
- * @param {boolean} defaultVal
- * @returns {boolean}
- */
-function parseBool(val, defaultVal) {
-    if (val === null || val === undefined) return defaultVal;
-    return val.trim().toLowerCase() === "true";
-}
-
-/**
- * 判断字符串参数值是否有效（过滤空值及常见占位符）。
- * @param {string|null} val
- * @returns {boolean}
+ * 判断 input 类型参数是否为有效非空值。
+ * 过滤空字符串及常见无效占位符（xxx / 无 / none）。
  */
 function isValid(val) {
-    if (val === null || val === undefined) return false;
-    const s = val.trim();
+    if (val === undefined || val === null) return false;
+    const s = String(val).trim();
     return s !== "" && s !== "xxx" && s !== "无" && s.toLowerCase() !== "none";
 }
 
-// 读取所有参数
-const enableCapture   = parseBool(readParam("ENABLE_CAPTURE"),      true);   // 默认开启抓取
-const useRandomReward = parseBool(readParam("RANDOM_REWARD"),        false);  // 默认固定保底
-const notifyOnlyFail  = parseBool(readParam("TG_NOTIFY_ONLY_FAIL"),  false);  // 默认全部通知
+// 打印原始 $argument，方便调试
+console.log("[NS签到] typeof $argument = " + typeof $argument);
+console.log("[NS签到] $argument = " + JSON.stringify($argument));
 
-const rawTgToken  = readParam("TG_BOT_TOKEN");
-const rawTgUserId = readParam("TG_USER_ID");
-const tgToken     = isValid(rawTgToken)  ? rawTgToken.trim()  : "";
-const tgUserId    = isValid(rawTgUserId) ? rawTgUserId.trim() : "";
+// $argument 是对象，直接按 key 读取，无需任何解析/转换
+if (typeof $argument === "object" && $argument !== null) {
 
-// 手动填写的 Cookie（若有效则写入存储供签到使用）
-const rawManualCookie = readParam("NS_COOKIE");
-if (isValid(rawManualCookie)) {
-    $persistentStore.write(rawManualCookie.trim(), COOKIE_CACHE_KEY);
-    console.log("[NS签到] 手动 Cookie 已写入存储: " + rawManualCookie.trim().substring(0, 30) + "...");
+    // ── http-request 阶段参数 ──────────────────────────────
+
+    // ENABLE_CAPTURE: switch 类型，布尔值
+    if ($argument.ENABLE_CAPTURE !== undefined) {
+        enableCapture = $argument.ENABLE_CAPTURE;
+        console.log("[NS签到] ENABLE_CAPTURE = " + enableCapture);
+    }
+
+    // NS_COOKIE: input 类型，字符串
+    // Cookie 含特殊字符，通过对象属性传递不存在截断问题
+    // 读到后立即持久化，cron 阶段从存储读取，无需再传
+    if (isValid($argument.NS_COOKIE)) {
+        const manualCookie = String($argument.NS_COOKIE).trim();
+        $persistentStore.write(manualCookie, COOKIE_CACHE_KEY);
+        console.log("[NS签到] 手动 Cookie 已写入存储: " + manualCookie.substring(0, 30) + "...");
+    }
+
+    // ── cron 阶段参数 ─────────────────────────────────────
+
+    // TG_BOT_TOKEN / TG_USER_ID: input 类型，字符串
+    if (isValid($argument.TG_BOT_TOKEN)) {
+        tgToken = String($argument.TG_BOT_TOKEN).trim();
+    }
+    if (isValid($argument.TG_USER_ID)) {
+        tgUserId = String($argument.TG_USER_ID).trim();
+    }
+
+    // TG_NOTIFY_ONLY_FAIL: switch 类型，布尔值
+    if ($argument.TG_NOTIFY_ONLY_FAIL !== undefined) {
+        notifyOnlyFail = $argument.TG_NOTIFY_ONLY_FAIL;
+    }
+
+    // RANDOM_REWARD: switch 类型，布尔值
+    if ($argument.RANDOM_REWARD !== undefined) {
+        useRandomReward = $argument.RANDOM_REWARD;
+    }
+
+} else {
+    // $argument 不是对象时记录警告，不抛出异常
+    console.log("[NS签到] ⚠️ $argument 非对象类型，跳过参数解析。实际类型: " + typeof $argument);
 }
 
-console.log("[NS签到] 参数加载完成 =>" +
+console.log("[NS签到] 参数解析完成 =>" +
     " enableCapture="    + enableCapture    +
     " | useRandomReward=" + useRandomReward  +
     " | notifyOnlyFail=" + notifyOnlyFail   +
@@ -140,7 +170,7 @@ function handleCaptureCookie() {
 
     const allHeaders = $request.headers || {};
 
-    // 忽略大小写取 Cookie header（Loon 中 header key 大小写不统一）
+    // 忽略大小写取 Cookie header
     const getHeader = (name) =>
         allHeaders[name] ??
         allHeaders[name.toLowerCase()] ??
@@ -193,7 +223,7 @@ async function handleCheckin() {
     // 先检测 Cookie 是否即将/已过期
     await checkCookieExpiry();
 
-    // 从持久化存储读取 Cookie（抓取或手动填写时已写入）
+    // 从持久化存储读取 Cookie（http-request 抓取或手动填写时已写入）
     const finalCookie = $persistentStore.read(COOKIE_CACHE_KEY);
 
     if (!finalCookie) {
@@ -204,7 +234,7 @@ async function handleCheckin() {
         return;
     }
 
-    // useRandomReward 由 $persistentStore 读取并正确解析为布尔值
+    // useRandomReward 由 $argument.RANDOM_REWARD 布尔值直接赋值
     const url = "https://www.nodeseek.com/api/attendance?random=" + useRandomReward;
     console.log("[NS签到] 签到 URL: " + url);
 
@@ -290,9 +320,6 @@ async function processResponse(resp) {
  *   error    - 网络错误字符串，成功为 null
  *   response - { status, headers }
  *   data     - 响应 body 字符串
- *
- * @param {{ url, method?, headers?, body? }} request
- * @returns {Promise<{ status, body, headers }>}
  */
 function fetchPromise(request) {
     return new Promise(function(resolve, reject) {
