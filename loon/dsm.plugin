@@ -7,51 +7,29 @@
 #!date = 2026-06-06
 
 [Rule]
-# === 1. 针对非标准端口的 TCP/UDP 广告连接进行底层拦截 (高优先级) ===
-# 拦截发往广告 SDK 常用非标准端口的特定流量（如果你的主策略是 DIRECT，这里会精准拦截广告，其余放行）
-AND, ((DEST-PORT, 8080), (DOMAIN-KEYWORD, pangolin)), REJECT
-AND, ((DEST-PORT, 8080), (DOMAIN-KEYWORD, anythink)), REJECT
-AND, ((DEST-PORT, 8443), (DOMAIN-KEYWORD, yunxi)), REJECT
-AND, ((DEST-PORT, 9000), (DOMAIN-KEYWORD, topon)), REJECT
+# ==================== 核心掐断区 ====================
+# 只要对方请求中包含以下广告商的任何字眼，无论带什么端口、什么协议，直接 REJECT
+DOMAIN-KEYWORD, anythink, REJECT
+DOMAIN-KEYWORD, toponad, REJECT
+DOMAIN-KEYWORD, ubixioe, REJECT
+DOMAIN-KEYWORD, pangolin, REJECT
+DOMAIN-KEYWORD, pglstatp, REJECT
+DOMAIN-KEYWORD, ugdtimg, REJECT
+DOMAIN-KEYWORD, yunxish, REJECT
+DOMAIN-KEYWORD, adwangmai, REJECT
+DOMAIN-KEYWORD, zhangyuyidong, REJECT
+DOMAIN-KEYWORD, hubcloud, REJECT
+DOMAIN-KEYWORD, shujupie, REJECT
 
-# === 2. 纯域名层面的精准拦截 (Rule 模式下百分百生效) ===
-DOMAIN-SUFFIX, anythinktech.com, REJECT
-DOMAIN-SUFFIX, toponad.com, REJECT
-DOMAIN-SUFFIX, ubixioe.com, REJECT
-DOMAIN-SUFFIX, yunxish.com, REJECT
-DOMAIN-KEYWORD, pangolin-sdk, REJECT
-DOMAIN-SUFFIX, pglstatp-toutiao.com, REJECT
-DOMAIN-SUFFIX, ugdtimg.com, REJECT
-DOMAIN-SUFFIX, 66mobi.com, REJECT
-DOMAIN-SUFFIX, adwangmai.com, REJECT
-DOMAIN-SUFFIX, zhangyuyidong.cn, REJECT
-DOMAIN-SUFFIX, hubcloud.com.cn, REJECT
+# 屏蔽极光统计、友盟统计和腾讯崩溃日志
+DOMAIN, ali-stats.jpush.cn, REJECT[cite: 1]
+DOMAIN, stats.jpush.cn, REJECT[cite: 1]
+DOMAIN, cnlogs.umeng.com, REJECT[cite: 1]
+DOMAIN, utoken.umeng.com, REJECT[cite: 1]
+DOMAIN, umini.shujupie.com, REJECT[cite: 1]
+DOMAIN, bugly.qq.com, REJECT[cite: 1]
 
-# 隐私与日志
-DOMAIN, ali-stats.jpush.cn, REJECT
-DOMAIN, stats.jpush.cn, REJECT
-DOMAIN, cnlogs.umeng.com, REJECT
-DOMAIN, utoken.umeng.com, REJECT
-DOMAIN, umini.shujupie.com, REJECT
-DOMAIN, bugly.qq.com, REJECT
-
-# === 3. 针对隐私报告中那些顽固纯 IP 广告源的底层封禁 ===
-# 华为云/腾讯云等高频出现的非核心业务统计 IP（精准封禁）
-IP-CIDR, 124.70.103.141/32, REJECT
-IP-CIDR, 114.116.241.156/32, REJECT
-IP-CIDR, 139.9.143.114/32, REJECT
-
-[Rewrite]
-# === 4. 标准 443/80 端口的 HTTP/HTTPS 协议层重写拦截 ===
-^https?:\/\/.*\.anythinktech\.com(:[0-9]+)? reject
-^https?:\/\/.*\.toponad\.com(:[0-9]+)? reject
-^https?:\/\/.*\.ubixioe\.com(:[0-9]+)? reject
-^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
-^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
-^https?:\/\/.*\.yunxish\.com(:[0-9]+)? reject
-^https?:\/\/gdt\.qq\.com(:[0-9]+)? reject
-^https?:\/\/e\.qq\.com(:[0-9]+)? reject
-
-[MITM]
-port = 443, 8080, 8443, 9000
-hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, *.yunxish.com, *.jpush.cn, *.umeng.com
+# 强行封锁小德管家日志里的那几个固定的华为云/腾讯云广告直连 IP[cite: 1]
+IP-CIDR, 124.70.103.141/32, REJECT[cite: 1]
+IP-CIDR, 114.116.241.156/32, REJECT[cite: 1]
+IP-CIDR, 139.9.143.114/32, REJECT[cite: 1]
