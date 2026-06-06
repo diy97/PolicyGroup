@@ -7,14 +7,116 @@
 #!date = 2026-06-06
 
 [General]
-# === 核心突破：强迫 Loon 接管所有非标准端口的流量 ===
-# 默认情况下 Loon 只管 80/443，这里强制接管广告 SDK 钻空子用的非标端口
+# === 1. 系统级网络与高级解析控制 ===
+# 开启本地 DNS 嗅探，强行从网络握手中剥离还原被隐藏的域名
+sniffing = true
+# 允许资源实时路由优化
 real-time-route = true
-force-http-engine-hosts = %APPEND% *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao*.com, *.yunxish.com
+# 标准网络基建 DNS（可根据你的宽带环境调整）
+dns-server = system, 119.29.29.29, 223.5.5.5
+# 绕过本地局域网
+skip-proxy = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, localhost, *.local
+bypass-tun = 192.168.0.0/16, localhost, *.local
+
+[Proxy]
+# 显式定义底层的原生网卡直连
+网卡直连 = direct
+
+[Proxy Group]
+# 建立兜底分流策略组
+流出策略 = select, 网卡直连
+
+[Host]
+# =====================================================================
+# === 核心武器：DNS 静态映射层（在 全局直连 模式与 规则 模式下均 100% 强制生效） ===
+# === 无论广告请求带任何非标准端口（:8080/:8443），在这里返回 0.0.0.0 后均会瞬间连接失败 ===
+# =====================================================================
+
+# --- 2.1 熔断广告 SDK 赖以生存的 HTTPDNS 域名（使其无法通过 HTTP 获取绕过常规解析的真实 IP） ---
+*.httpdns.c.android.api.netease.im = 0.0.0.0
+dig.bdurl.net = 0.0.0.0
+httpdns.gdt.qq.com = 0.0.0.0
+httpdns.alicdn.com = 0.0.0.0
+dns.alidns.com = 0.0.0.0
+
+# --- 2.2 字节跳动穿山甲广告联盟 (Pangolin SDK) & 火山引擎营销 ---
+api-access.pangolin-sdk-toutiao.com = 0.0.0.0
+api-access.pangolin-sdk-toutiao1.com = 0.0.0.0
+log-api.pangolin-sdk-toutiao.com = 0.0.0.0
+log-api.pangolin-sdk-toutiao-b.com = 0.0.0.0
+*.pglstatp-toutiao.com = 0.0.0.0
+toblog.ctobsnssdk.com = 0.0.0.0
+webcast-open.douyin.com = 0.0.0.0
+p3-sign.douyinpic.com = 0.0.0.0
+lf-cdn-tos.bytescm.com = 0.0.0.0
+vod-license-m.volccdn.com = 0.0.0.0
+mssdk.volces.com = 0.0.0.0
+apmplus.volces.com = 0.0.0.0
+tnc3-alisc1.zijieapi.com = 0.0.0.0
+
+# --- 2.3 TopOn / AnyThink / Ubix 广告聚合平台 ---
+*.anythinktech.com = 0.0.0.0
+*.toponad.com = 0.0.0.0
+*.ubixioe.com = 0.0.0.0
+ujoy.anythinktech.com = 0.0.0.0
+adx-bj.anythinktech.com = 0.0.0.0
+tk.anythinktech.com = 0.0.0.0
+mores.toponad.com = 0.0.0.0
+md-cfg-u1.ubixioe.com = 0.0.0.0
+entry-su1.ubixioe.com = 0.0.0.0
+md-data-u1.ubixioe.com = 0.0.0.0
+adx-cfg-u1.ubixioe.com = 0.0.0.0
+
+# --- 2.4 腾讯优量汇广告系统 (GDT) ---
+gdt.qq.com = 0.0.0.0
+e.qq.com = 0.0.0.0
+*.ugdtimg.com = 0.0.0.0
+
+# --- 2.5 快手、百度、阿里妈妈、网迈等多元营销与开屏 SDK ---
+open.e.kuaishou.com = 0.0.0.0
+p66-ad.adkwai.com = 0.0.0.0
+feed-image.baidu.com = 0.0.0.0
+ef-dongfeng.tanx.com = 0.0.0.0
+*.yunxish.com = 0.0.0.0
+*.66mobi.com = 0.0.0.0
+*.adwangmai.com = 0.0.0.0
+sdk.beizi.biz = 0.0.0.0
+bid-adx2.vlion.cn = 0.0.0.0
+ad-api.adn-plus.com.cn = 0.0.0.0
+api.ssp.xcultur.com = 0.0.0.0
+bj-td-menta-01-callback.advlion.com = 0.0.0.0
+cpc-service-square.iggrowth.cn = 0.0.0.0
+api-v3.mentamob.com = 0.0.0.0
+fapi.hongxiu158.com = 0.0.0.0
+*.hubcloud.com.cn = 0.0.0.0
+sdk.1rtb.net = 0.0.0.0
+*.zhangyuyidong.cn = 0.0.0.0
+lx-upload-log.go2yd.com = 0.0.0.0
+nexorax.datads.cn = 0.0.0.0
+api.shanghailingye.cn = 0.0.0.0
+yumao.puata.info = 0.0.0.0
+rs.xmeye.net = 0.0.0.0
+d.alicdn.com = 0.0.0.0
+sdk.openaccount.aliyun.com = 0.0.0.0
+dsm-oss-public.oss-cn-hangzhou.aliyuncs.com = 0.0.0.0
+efe-h2.cdn.bcebos.com = 0.0.0.0
+bj.openstorage.cn = 0.0.0.0
+
+# --- 2.6 隐私报告高频统计、追踪与崩溃日志上报系统 (JPush / Umeng / 个推 / Bugly) ---
+ali-stats.jpush.cn = 0.0.0.0
+stats.jpush.cn = 0.0.0.0
+user.jpush.cn = 0.0.0.0
+cnlogs.umeng.com = 0.0.0.0
+utoken.umeng.com = 0.0.0.0
+umini.shujupie.com = 0.0.0.0
+bugly.qq.com = 0.0.0.0
+trace.qq.com = 0.0.0.0
+dualstack-logs.amap.com = 0.0.0.0
+cm-10-177.getui.com = 0.0.0.0
+res.wx.qq.com = 0.0.0.0
 
 [Rule]
-# === 1. 核心关键词断路规则 (不限端口，全面拦截 TCP/UDP) ===
-# 当上面的 General 接管端口后，这里的关键词规则才会真正对 :8080 等端口生效
+# === 3. 规则分流防线（当你在规则模式下时执行最高优先级的防火墙拦截） ===
 DOMAIN-KEYWORD, anythink, REJECT
 DOMAIN-KEYWORD, toponad, REJECT
 DOMAIN-KEYWORD, ubixioe, REJECT
@@ -27,34 +129,23 @@ DOMAIN-KEYWORD, zhangyuyidong, REJECT
 DOMAIN-KEYWORD, hubcloud, REJECT
 DOMAIN-KEYWORD, shujupie, REJECT
 
-# === 2. 第三方统计与隐私上报拦截 (基于隐私报告精准匹配) ===
-DOMAIN, ali-stats.jpush.cn, REJECT 
-DOMAIN, stats.jpush.cn, REJECT 
-DOMAIN, cnlogs.umeng.com, REJECT 
-DOMAIN, utoken.umeng.com, REJECT 
-DOMAIN, umini.shujupie.com, REJECT 
-DOMAIN, bugly.qq.com, REJECT 
-DOMAIN, trace.qq.com, REJECT 
-DOMAIN, dualstack-logs.amap.com, REJECT 
+# 针对日志中出现的那些绕过域名直连 IP 的硬性网络熔断
+IP-CIDR, 124.70.103.141/32, REJECT
+IP-CIDR, 114.116.241.156/32, REJECT
+IP-CIDR, 139.9.143.114/32, REJECT
 
-# === 3. 顽固纯 IP 广告源拦截 (防止其绕过 DNS 直接连 IP) ===
-IP-CIDR, 124.70.103.141/32, REJECT 
-IP-CIDR, 114.116.241.156/32, REJECT 
-IP-CIDR, 139.9.143.114/32, REJECT 
+# 其余没有被命中的核心控制流量（如控制智能锁的核心节点）无条件安全直连
+FINAL, 流出策略
 
 [Rewrite]
-# === 4. 标准 HTTP/HTTPS 协议层拒绝 (官方 Rewrite 规范) ===
-# 允许正则匹配任何携带端口的 HTTP 请求并执行 reject
+# === 4. 标准 HTTP 协议层兜底拦截 ===
 ^https?:\/\/.*\.anythinktech\.com(:[0-9]+)? reject
 ^https?:\/\/.*\.toponad\.com(:[0-9]+)? reject
 ^https?:\/\/.*\.ubixioe\.com(:[0-9]+)? reject
 ^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
 ^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
-^https?:\/\/.*\.yunxish\.com(:[0-9]+)? reject
-^https?:\/\/gdt\.qq\.com(:[0-9]+)? reject
-^https?:\/\/e\.qq\.com(:[0-9]+)? reject
 
 [MITM]
-# 允许 MITM 引擎解密这些非标准端口的加密流量，否则重写引擎无法读取内容
-port = 443, 8080, 8443, 9000, 18080
-hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, api-access.pangolin-sdk-toutiao1.com, log-api.pangolin-sdk-toutiao.com, log-api.pangolin-sdk-toutiao-b.com, *.pglstatp-toutiao.com, *.yunxish.com, *.jpush.cn, *.umeng.com, umini.shujupie.com, bugly.qq.com
+enable = true
+port = 443, 8080, 8443, 9000
+hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, *.yunxish.com
