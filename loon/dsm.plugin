@@ -6,30 +6,63 @@
 #!icon = https://raw.githubusercontent.com/diy97/PolicyGroup/refs/heads/main/loon/img/dsm.png
 #!date = 2026-06-06
 
-[Rule]
-# ==================== 核心掐断区 ====================
-# 只要对方请求中包含以下广告商的任何字眼，无论带什么端口、什么协议，直接 REJECT
-DOMAIN-KEYWORD, anythink, REJECT
-DOMAIN-KEYWORD, toponad, REJECT
-DOMAIN-KEYWORD, ubixioe, REJECT
-DOMAIN-KEYWORD, pangolin, REJECT
-DOMAIN-KEYWORD, pglstatp, REJECT
-DOMAIN-KEYWORD, ugdtimg, REJECT
-DOMAIN-KEYWORD, yunxish, REJECT
-DOMAIN-KEYWORD, adwangmai, REJECT
-DOMAIN-KEYWORD, zhangyuyidong, REJECT
-DOMAIN-KEYWORD, hubcloud, REJECT
-DOMAIN-KEYWORD, shujupie, REJECT
+[Rewrite]
+# === 1. Third-Party Ad Networks & Aggregators (Port Compatible) ===
+^https?:\/\/.*\.anythinktech\.com(:[0-9]+)? reject
+^https?:\/\/.*\.toponad\.com(:[0-9]+)? reject
+^https?:\/\/.*\.ubixioe\.com(:[0-9]+)? reject
 
-# 屏蔽极光统计、友盟统计和腾讯崩溃日志
-DOMAIN, ali-stats.jpush.cn, REJECT[cite: 1]
-DOMAIN, stats.jpush.cn, REJECT[cite: 1]
-DOMAIN, cnlogs.umeng.com, REJECT[cite: 1]
-DOMAIN, utoken.umeng.com, REJECT[cite: 1]
-DOMAIN, umini.shujupie.com, REJECT[cite: 1]
-DOMAIN, bugly.qq.com, REJECT[cite: 1]
+^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
+^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
+^https?:\/\/.*\.pglstatp-toutiao\.com(:[0-9]+)? reject
+^https?:\/\/toblog\.ctobsnssdk\.com(:[0-9]+)? reject
+^https?:\/\/webcast-open\.douyin\.com(:[0-9]+)? reject
+^https?:\/\/p3-sign\.douyinpic\.com(:[0-9]+)? reject
+^https?:\/\/lf-cdn-tos\.bytescm\.com(:[0-9]+)? reject
+^https?:\/\/vod-license-m\.volccdn\.com(:[0-9]+)? reject
+^https?:\/\/mssdk\.volces\.com(:[0-9]+)? reject
+^https?:\/\/apmplus\.volces\.com(:[0-9]+)? reject
 
-# 强行封锁小德管家日志里的那几个固定的华为云/腾讯云广告直连 IP[cite: 1]
-IP-CIDR, 124.70.103.141/32, REJECT[cite: 1]
-IP-CIDR, 114.116.241.156/32, REJECT[cite: 1]
-IP-CIDR, 139.9.143.114/32, REJECT[cite: 1]
+^https?:\/\/gdt\.qq\.com(:[0-9]+)? reject
+^https?:\/\/e\.qq\.com(:[0-9]+)? reject
+^https?:\/\/.*\.ugdtimg\.com(:[0-9]+)? reject
+
+^https?:\/\/open\.e\.kuaishou\.com(:[0-9]+)? reject
+^https?:\/\/p66-ad\.adkwai\.com(:[0-9]+)? reject
+^https?:\/\/feed-image\.baidu\.com(:[0-9]+)? reject
+
+^https?:\/\/.*\.yunxish\.com(:[0-9]+)? reject
+
+^https?:\/\/.*\.66mobi\.com(:[0-9]+)? reject
+^https?:\/\/.*\.adwangmai\.com(:[0-9]+)? reject
+^https?:\/\/sdk\.beizi\.biz(:[0-9]+)? reject
+^https?:\/\/bid-adx2\.vlion\.cn(:[0-9]+)? reject
+^https?:\/\/ad-api\.adn-plus\.com\.cn(:[0-9]+)? reject
+^https?:\/\/api\.ssp\.xcultur\.com(:[0-9]+)? reject
+^https?:\/\/bj-td-menta-01-callback\.advlion\.com(:[0-9]+)? reject
+^https?:\/\/cpc-service-square\.iggrowth\.cn(:[0-9]+)? reject
+^https?:\/\/api-v3\.mentamob\.com(:[0-9]+)? reject
+^https?:\/\/fapi\.hongxiu158\.com(:[0-9]+)? reject
+^https?:\/\/.*\.hubcloud\.com\.cn(:[0-9]+)? reject
+^https?:\/\/sdk\.1rtb\.net(:[0-9]+)? reject
+^https?:\/\/.*\.zhangyuyidong\.cn(:[0-9]+)? reject
+^https?:\/\/lx-upload-log\.go2yd\.com(:[0-9]+)? reject
+^https?:\/\/nexorax\.datads\.cn(:[0-9]+)? reject
+^https?:\/\/api\.shanghailingye\.cn(:[0-9]+)? reject
+^https?:\/\/yumao\.puata\.info(:[0-9]+)? reject
+^https?:\/\/ef-dongfeng\.tanx\.com(:[0-9]+)? reject
+
+# === 2. Privacy Tracking & Logs (Port Compatible) ===
+^https?:\/\/ali-stats\.jpush\.cn(:[0-9]+)? reject
+^https?:\/\/stats\.jpush\.cn(:[0-9]+)? reject
+^https?:\/\/cnlogs\.umeng\.com(:[0-9]+)? reject
+^https?:\/\/utoken\.umeng\.com(:[0-9]+)? reject
+^https?:\/\/umini\.shujupie\.com(:[0-9]+)? reject
+^https?:\/\/bugly\.qq\.com(:[0-9]+)? reject
+^https?:\/\/trace\.qq\.com(:[0-9]+)? reject
+^https?:\/\/dualstack-logs\.amap\.com(:[0-9]+)? reject
+
+[MITM]
+# 必须显式指定允许解密的非标准端口
+port = 443, 5000, 8080, 8443, 8888, 9000, 18080
+hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, api-access.pangolin-sdk-toutiao1.com, log-api.pangolin-sdk-toutiao.com, log-api.pangolin-sdk-toutiao-b.com, *.pglstatp-toutiao.com, toblog.ctobsnssdk.com, webcast-open.douyin.com, *.ugdtimg.com, *.yunxish.com, *.66mobi.com, *.adwangmai.com, *.hubcloud.com.cn, *.zhangyuyidong.cn, *.jpush.cn, *.umeng.com, umini.shujupie.com, bugly.qq.com
