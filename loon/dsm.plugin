@@ -7,75 +7,62 @@
 #!date = 2026-06-06
 
 [Rewrite]
-# === 1. 聚合广告平台与第三方广告联盟 (00:59:44 集中触发源) ===
+# === 1. Third-Party Ad Networks & Aggregators (Port Compatible) ===
+^https?:\/\/.*\.anythinktech\.com(:[0-9]+)? reject
+^https?:\/\/.*\.toponad\.com(:[0-9]+)? reject
+^https?:\/\/.*\.ubixioe\.com(:[0-9]+)? reject
 
-# TopOn / AnyThink 广告聚合
-^https?:\/\/.*\.anythinktech\.com reject
-^https?:\/\/.*\.toponad\.com reject
+^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
+^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com(:[0-9]+)? reject
+^https?:\/\/.*\.pglstatp-toutiao\.com(:[0-9]+)? reject
+^https?:\/\/toblog\.ctobsnssdk\.com(:[0-9]+)? reject
+^https?:\/\/webcast-open\.douyin\.com(:[0-9]+)? reject
+^https?:\/\/p3-sign\.douyinpic\.com(:[0-9]+)? reject
+^https?:\/\/lf-cdn-tos\.bytescm\.com(:[0-9]+)? reject
+^https?:\/\/vod-license-m\.volccdn\.com(:[0-9]+)? reject
+^https?:\/\/mssdk\.volces\.com(:[0-9]+)? reject
+^https?:\/\/apmplus\.volces\.com(:[0-9]+)? reject
 
-# Ubix (优必选广告)
-^https?:\/\/.*\.ubixioe\.com reject
+^https?:\/\/gdt\.qq\.com(:[0-9]+)? reject
+^https?:\/\/e\.qq\.com(:[0-9]+)? reject
+^https?:\/\/.*\.ugdtimg\.com(:[0-9]+)? reject
 
-# 字节跳动穿山甲广告联盟 (Pangolin SDK) & 火山引擎营销
-^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com reject
-^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com reject
-^https?:\/\/.*\.pglstatp-toutiao\.com reject
-^https?:\/\/toblog\.ctobsnssdk\.com reject
-^https?:\/\/webcast-open\.douyin\.com reject
-^https?:\/\/p3-sign\.douyinpic\.com reject
-^https?:\/\/lf-cdn-tos\.bytescm\.com reject
-^https?:\/\/vod-license-m\.volccdn\.com reject
-^https?:\/\/mssdk\.volces\.com reject
-^https?:\/\/apmplus\.volces\.com reject
+^https?:\/\/open\.e\.kuaishou\.com(:[0-9]+)? reject
+^https?:\/\/p66-ad\.adkwai\.com(:[0-9]+)? reject
+^https?:\/\/feed-image\.baidu\.com(:[0-9]+)? reject
 
-# 腾讯优量汇广告系统 (GDT)
-^https?:\/\/gdt\.qq\.com reject
-^https?:\/\/e\.qq\.com reject
-^https?:\/\/.*\.ugdtimg\.com reject
+^https?:\/\/.*\.yunxish\.com(:[0-9]+)? reject
 
-# 快手 & 百度广告流
-^https?:\/\/open\.e\.kuaishou\.com reject
-^https?:\/\/p66-ad\.adkwai\.com reject
-^https?:\/\/feed-image\.baidu\.com reject
+^https?:\/\/.*\.66mobi\.com(:[0-9]+)? reject
+^https?:\/\/.*\.adwangmai\.com(:[0-9]+)? reject
+^https?:\/\/sdk\.beizi\.biz(:[0-9]+)? reject
+^https?:\/\/bid-adx2\.vlion\.cn(:[0-9]+)? reject
+^https?:\/\/ad-api\.adn-plus\.com\.cn(:[0-9]+)? reject
+^https?:\/\/api\.ssp\.xcultur\.com(:[0-9]+)? reject
+^https?:\/\/bj-td-menta-01-callback\.advlion\.com(:[0-9]+)? reject
+^https?:\/\/cpc-service-square\.iggrowth\.cn(:[0-9]+)? reject
+^https?:\/\/api-v3\.mentamob\.com(:[0-9]+)? reject
+^https?:\/\/fapi\.hongxiu158\.com(:[0-9]+)? reject
+^https?:\/\/.*\.hubcloud\.com\.cn(:[0-9]+)? reject
+^https?:\/\/sdk\.1rtb\.net(:[0-9]+)? reject
+^https?:\/\/.*\.zhangyuyidong\.cn(:[0-9]+)? reject
+^https?:\/\/lx-upload-log\.go2yd\.com(:[0-9]+)? reject
+^https?:\/\/nexorax\.datads\.cn(:[0-9]+)? reject
+^https?:\/\/api\.shanghailingye\.cn(:[0-9]+)? reject
+^https?:\/\/yumao\.puata\.info(:[0-9]+)? reject
+^https?:\/\/ef-dongfeng\.tanx\.com(:[0-9]+)? reject
 
-# 云溪/云希 (Yunxi) 广告归因与营销
-^https?:\/\/.*\.yunxish\.com reject
-
-# 其它中小型广告/网迈/贝紫/营销/引流 SDK
-^https?:\/\/.*\.66mobi\.com reject
-^https?:\/\/.*\.adwangmai\.com reject
-^https?:\/\/sdk\.beizi\.biz reject
-^https?:\/\/bid-adx2\.vlion\.cn reject
-^https?:\/\/ad-api\.adn-plus\.com\.cn reject
-^https?:\/\/api\.ssp\.xcultur\.com reject
-^https?:\/\/bj-td-menta-01-callback\.advlion\.com reject
-^https?:\/\/cpc-service-square\.iggrowth\.cn reject
-^https?:\/\/api-v3\.mentamob\.com reject
-^https?:\/\/fapi\.hongxiu158\.com reject
-^https?:\/\/.*\.hubcloud\.com\.cn reject
-^https?:\/\/sdk\.1rtb\.net reject
-^https?:\/\/.*\.zhangyuyidong\.cn reject
-^https?:\/\/lx-upload-log\.go2yd\.com reject
-^https?:\/\/nexorax\.datads\.cn reject
-^https?:\/\/api\.shanghailingye\.cn reject
-^https?:\/\/yumao\.puata\.info reject
-^https?:\/\/ef-dongfeng\.tanx\.com reject
-
-# === 2. 非核心第三方统计/追踪/崩溃日志 (Umeng / JPush / Bugly) ===
-# 极光推送统计
-^https?:\/\/ali-stats\.jpush\.cn reject
-^https?:\/\/stats\.jpush\.cn reject
-
-# 友盟统计 & 数据皮
-^https?:\/\/cnlogs\.umeng\.com reject
-^https?:\/\/utoken\.umeng\.com reject
-^https?:\/\/umini\.shujupie\.com reject
-
-# 腾讯 Bugly & 高德日志
-^https?:\/\/bugly\.qq\.com reject
-^https?:\/\/trace\.qq\.com reject
-^https?:\/\/dualstack-logs\.amap\.com reject
+# === 2. Privacy Tracking & Logs (Port Compatible) ===
+^https?:\/\/ali-stats\.jpush\.cn(:[0-9]+)? reject
+^https?:\/\/stats\.jpush\.cn(:[0-9]+)? reject
+^https?:\/\/cnlogs\.umeng\.com(:[0-9]+)? reject
+^https?:\/\/utoken\.umeng\.com(:[0-9]+)? reject
+^https?:\/\/umini\.shujupie\.com(:[0-9]+)? reject
+^https?:\/\/bugly\.qq\.com(:[0-9]+)? reject
+^https?:\/\/trace\.qq\.com(:[0-9]+)? reject
+^https?:\/\/dualstack-logs\.amap\.com(:[0-9]+)? reject
 
 [MITM]
-# 必须将需要解密的广告域名写入 MITM 才能使 HTTPS 重写生效
+# 必须显式指定允许解密的非标准端口
+port = 443, 5000, 8080, 8443, 8888, 9000, 18080
 hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, api-access.pangolin-sdk-toutiao1.com, log-api.pangolin-sdk-toutiao.com, log-api.pangolin-sdk-toutiao-b.com, *.pglstatp-toutiao.com, toblog.ctobsnssdk.com, webcast-open.douyin.com, *.ugdtimg.com, *.yunxish.com, *.66mobi.com, *.adwangmai.com, *.hubcloud.com.cn, *.zhangyuyidong.cn, *.jpush.cn, *.umeng.com, umini.shujupie.com, bugly.qq.com
