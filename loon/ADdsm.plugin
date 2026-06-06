@@ -1,48 +1,50 @@
-#!name = 小德管家 去广告及隐私净化 (规则+重写终极版)
-#!desc = 必须在 Loon 规则模式(Rule)下使用。通过将主策略选为 DIRECT 实现直连，同时利用 Rule 引擎强行切断带非标准端口的广告 TCP 连接。
+#!name = 小德管家 去广告及隐私净化 (端口强控版)
+#!desc = 彻底攻克广告 SDK 利用 :8080、:8443 等非标准端口绕过拦截直连的硬伤。通过强制全局端口接管，在网络层和重写层双重熔断广告。请在【规则模式】下使用。
 #!openUrl = 
 #!author = Gemini
-#!homepage = 
+#!homepage = https://nsloon.app
 #!icon = https://raw.githubusercontent.com/diy97/PolicyGroup/refs/heads/main/loon/img/dsm.png
 #!date = 2026-06-06
 
+[General]
+# === 核心突破：强迫 Loon 接管所有非标准端口的流量 ===
+# 默认情况下 Loon 只管 80/443，这里强制接管广告 SDK 钻空子用的非标端口
+real-time-route = true
+force-http-engine-hosts = %APPEND% *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao*.com, *.yunxish.com
+
 [Rule]
-# === 1. 针对非标准端口的 TCP/UDP 广告连接进行底层拦截 (高优先级) ===
-# 拦截发往广告 SDK 常用非标准端口的特定流量（如果你的主策略是 DIRECT，这里会精准拦截广告，其余放行）
-AND, ((DEST-PORT, 8080), (DOMAIN-KEYWORD, pangolin)), REJECT
-AND, ((DEST-PORT, 8080), (DOMAIN-KEYWORD, anythink)), REJECT
-AND, ((DEST-PORT, 8443), (DOMAIN-KEYWORD, yunxi)), REJECT
-AND, ((DEST-PORT, 9000), (DOMAIN-KEYWORD, topon)), REJECT
+# === 1. 核心关键词断路规则 (不限端口，全面拦截 TCP/UDP) ===
+# 当上面的 General 接管端口后，这里的关键词规则才会真正对 :8080 等端口生效
+DOMAIN-KEYWORD, anythink, REJECT
+DOMAIN-KEYWORD, toponad, REJECT
+DOMAIN-KEYWORD, ubixioe, REJECT
+DOMAIN-KEYWORD, pangolin, REJECT
+DOMAIN-KEYWORD, pglstatp, REJECT
+DOMAIN-KEYWORD, ugdtimg, REJECT
+DOMAIN-KEYWORD, yunxish, REJECT
+DOMAIN-KEYWORD, adwangmai, REJECT
+DOMAIN-KEYWORD, zhangyuyidong, REJECT
+DOMAIN-KEYWORD, hubcloud, REJECT
+DOMAIN-KEYWORD, shujupie, REJECT
 
-# === 2. 纯域名层面的精准拦截 (Rule 模式下百分百生效) ===
-DOMAIN-SUFFIX, anythinktech.com, REJECT
-DOMAIN-SUFFIX, toponad.com, REJECT
-DOMAIN-SUFFIX, ubixioe.com, REJECT
-DOMAIN-SUFFIX, yunxish.com, REJECT
-DOMAIN-KEYWORD, pangolin-sdk, REJECT
-DOMAIN-SUFFIX, pglstatp-toutiao.com, REJECT
-DOMAIN-SUFFIX, ugdtimg.com, REJECT
-DOMAIN-SUFFIX, 66mobi.com, REJECT
-DOMAIN-SUFFIX, adwangmai.com, REJECT
-DOMAIN-SUFFIX, zhangyuyidong.cn, REJECT
-DOMAIN-SUFFIX, hubcloud.com.cn, REJECT
+# === 2. 第三方统计与隐私上报拦截 (基于隐私报告精准匹配) ===
+DOMAIN, ali-stats.jpush.cn, REJECT 
+DOMAIN, stats.jpush.cn, REJECT 
+DOMAIN, cnlogs.umeng.com, REJECT 
+DOMAIN, utoken.umeng.com, REJECT 
+DOMAIN, umini.shujupie.com, REJECT 
+DOMAIN, bugly.qq.com, REJECT 
+DOMAIN, trace.qq.com, REJECT 
+DOMAIN, dualstack-logs.amap.com, REJECT 
 
-# 隐私与日志
-DOMAIN, ali-stats.jpush.cn, REJECT
-DOMAIN, stats.jpush.cn, REJECT
-DOMAIN, cnlogs.umeng.com, REJECT
-DOMAIN, utoken.umeng.com, REJECT
-DOMAIN, umini.shujupie.com, REJECT
-DOMAIN, bugly.qq.com, REJECT
-
-# === 3. 针对隐私报告中那些顽固纯 IP 广告源的底层封禁 ===
-# 华为云/腾讯云等高频出现的非核心业务统计 IP（精准封禁）
-IP-CIDR, 124.70.103.141/32, REJECT
-IP-CIDR, 114.116.241.156/32, REJECT
-IP-CIDR, 139.9.143.114/32, REJECT
+# === 3. 顽固纯 IP 广告源拦截 (防止其绕过 DNS 直接连 IP) ===
+IP-CIDR, 124.70.103.141/32, REJECT 
+IP-CIDR, 114.116.241.156/32, REJECT 
+IP-CIDR, 139.9.143.114/32, REJECT 
 
 [Rewrite]
-# === 4. 标准 443/80 端口的 HTTP/HTTPS 协议层重写拦截 ===
+# === 4. 标准 HTTP/HTTPS 协议层拒绝 (官方 Rewrite 规范) ===
+# 允许正则匹配任何携带端口的 HTTP 请求并执行 reject
 ^https?:\/\/.*\.anythinktech\.com(:[0-9]+)? reject
 ^https?:\/\/.*\.toponad\.com(:[0-9]+)? reject
 ^https?:\/\/.*\.ubixioe\.com(:[0-9]+)? reject
@@ -53,5 +55,6 @@ IP-CIDR, 139.9.143.114/32, REJECT
 ^https?:\/\/e\.qq\.com(:[0-9]+)? reject
 
 [MITM]
-port = 443, 8080, 8443, 9000
-hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, *.yunxish.com, *.jpush.cn, *.umeng.com
+# 允许 MITM 引擎解密这些非标准端口的加密流量，否则重写引擎无法读取内容
+port = 443, 8080, 8443, 9000, 18080
+hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, api-access.pangolin-sdk-toutiao1.com, log-api.pangolin-sdk-toutiao.com, log-api.pangolin-sdk-toutiao-b.com, *.pglstatp-toutiao.com, *.yunxish.com, *.jpush.cn, *.umeng.com, umini.shujupie.com, bugly.qq.com
