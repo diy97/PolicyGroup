@@ -1,83 +1,81 @@
-#!name = 小德管家 去广告及隐私净化
-#!desc = 移除德施曼-小德管家 App 的开屏广告、信息流广告、聚合广告 SDK 以及不必要的数据追踪上报，不影响智能家居核心控制功能。
+#!name = 小德管家 去广告及隐私净化 
+#!desc = 针对全局直连/DIRECT模式优化的重写版插件。移除德施曼-小德管家 App 的开屏及信息流广告、聚合广告 SDK 以及隐私数据上报。
 #!openUrl = 
 #!author = Gemini
 #!homepage = 
 #!icon = https://raw.githubusercontent.com/diy97/PolicyGroup/refs/heads/main/loon/img/dsm.png
 #!date = 2026-06-06
 
-[Rule]
+[Rewrite]
 # === 1. 聚合广告平台与第三方广告联盟 (00:59:44 集中触发源) ===
+
 # TopOn / AnyThink 广告聚合
-DOMAIN-SUFFIX, anythinktech.com, REJECT
-DOMAIN-SUFFIX, toponad.com, REJECT
+^https?:\/\/.*\.anythinktech\.com reject
+^https?:\/\/.*\.toponad\.com reject
 
 # Ubix (优必选广告)
-DOMAIN-SUFFIX, ubixioe.com, REJECT
+^https?:\/\/.*\.ubixioe\.com reject
 
 # 字节跳动穿山甲广告联盟 (Pangolin SDK) & 火山引擎营销
-DOMAIN-SUFFIX, pangolin-sdk-toutiao.com, REJECT
-DOMAIN-SUFFIX, pangolin-sdk-toutiao1.com, REJECT
-DOMAIN-SUFFIX, pangolin-sdk-toutiao-b.com, REJECT
-DOMAIN-SUFFIX, pglstatp-toutiao.com, REJECT
-DOMAIN-SUFFIX, ctobsnssdk.com, REJECT
-DOMAIN, webcast-open.douyin.com, REJECT
-DOMAIN, p3-sign.douyinpic.com, REJECT
-DOMAIN, lf-cdn-tos.bytescm.com, REJECT
-DOMAIN, vod-license-m.volccdn.com, REJECT
-DOMAIN, mssdk.volces.com, REJECT
-DOMAIN, apmplus.volces.com, REJECT
+^https?:\/\/api-access\.pangolin-sdk-toutiao.*\.com reject
+^https?:\/\/log-api\.pangolin-sdk-toutiao.*\.com reject
+^https?:\/\/.*\.pglstatp-toutiao\.com reject
+^https?:\/\/toblog\.ctobsnssdk\.com reject
+^https?:\/\/webcast-open\.douyin\.com reject
+^https?:\/\/p3-sign\.douyinpic\.com reject
+^https?:\/\/lf-cdn-tos\.bytescm\.com reject
+^https?:\/\/vod-license-m\.volccdn\.com reject
+^https?:\/\/mssdk\.volces\.com reject
+^https?:\/\/apmplus\.volces\.com reject
 
 # 腾讯优量汇广告系统 (GDT)
-DOMAIN, gdt.qq.com, REJECT
-DOMAIN, e.qq.com, REJECT
-DOMAIN-SUFFIX, ugdtimg.com, REJECT
+^https?:\/\/gdt\.qq\.com reject
+^https?:\/\/e\.qq\.com reject
+^https?:\/\/.*\.ugdtimg\.com reject
 
 # 快手 & 百度广告流
-DOMAIN, open.e.kuaishou.com, REJECT
-DOMAIN, p66-ad.adkwai.com, REJECT
-DOMAIN, feed-image.baidu.com, REJECT
+^https?:\/\/open\.e\.kuaishou\.com reject
+^https?:\/\/p66-ad\.adkwai\.com reject
+^https?:\/\/feed-image\.baidu\.com reject
 
 # 云溪/云希 (Yunxi) 广告归因与营销
-DOMAIN-SUFFIX, yunxish.com, REJECT
+^https?:\/\/.*\.yunxish\.com reject
 
 # 其它中小型广告/网迈/贝紫/营销/引流 SDK
-DOMAIN-SUFFIX, 66mobi.com, REJECT
-DOMAIN-SUFFIX, adwangmai.com, REJECT
-DOMAIN, sdk.beizi.biz, REJECT
-DOMAIN, bid-adx2.vlion.cn, REJECT
-DOMAIN, ad-api.adn-plus.com.cn, REJECT
-DOMAIN, api.ssp.xcultur.com, REJECT
-DOMAIN, bj-td-menta-01-callback.advlion.com, REJECT
-DOMAIN, cpc-service-square.iggrowth.cn, REJECT
-DOMAIN, api-v3.mentamob.com, REJECT
-DOMAIN, fapi.hongxiu158.com, REJECT
-DOMAIN, res1.hubcloud.com.cn, REJECT
-DOMAIN, sdktmp.hubcloud.com.cn, REJECT
-DOMAIN, sdk.1rtb.net, REJECT
-DOMAIN, sdk.zhangyuyidong.cn, REJECT
-DOMAIN, sdklog.zhangyuyidong.cn, REJECT
-DOMAIN, lx-upload-log.go2yd.com, REJECT
-DOMAIN, nexorax.datads.cn, REJECT
-DOMAIN, api.shanghailingye.cn, REJECT
-DOMAIN, yumao.puata.info, REJECT
-DOMAIN, ef-dongfeng.tanx.com, REJECT
+^https?:\/\/.*\.66mobi\.com reject
+^https?:\/\/.*\.adwangmai\.com reject
+^https?:\/\/sdk\.beizi\.biz reject
+^https?:\/\/bid-adx2\.vlion\.cn reject
+^https?:\/\/ad-api\.adn-plus\.com\.cn reject
+^https?:\/\/api\.ssp\.xcultur\.com reject
+^https?:\/\/bj-td-menta-01-callback\.advlion\.com reject
+^https?:\/\/cpc-service-square\.iggrowth\.cn reject
+^https?:\/\/api-v3\.mentamob\.com reject
+^https?:\/\/fapi\.hongxiu158\.com reject
+^https?:\/\/.*\.hubcloud\.com\.cn reject
+^https?:\/\/sdk\.1rtb\.net reject
+^https?:\/\/.*\.zhangyuyidong\.cn reject
+^https?:\/\/lx-upload-log\.go2yd\.com reject
+^https?:\/\/nexorax\.datads\.cn reject
+^https?:\/\/api\.shanghailingye\.cn reject
+^https?:\/\/yumao\.puata\.info reject
+^https?:\/\/ef-dongfeng\.tanx\.com reject
 
 # === 2. 非核心第三方统计/追踪/崩溃日志 (Umeng / JPush / Bugly) ===
-# 极光推送统计（保留核心推送，拦截行为统计上报）
-DOMAIN, ali-stats.jpush.cn, REJECT
-DOMAIN, stats.jpush.cn, REJECT
+# 极光推送统计
+^https?:\/\/ali-stats\.jpush\.cn reject
+^https?:\/\/stats\.jpush\.cn reject
 
 # 友盟统计 & 数据皮
-DOMAIN, cnlogs.umeng.com, REJECT
-DOMAIN, utoken.umeng.com, REJECT
-DOMAIN, umini.shujupie.com, REJECT
+^https?:\/\/cnlogs\.umeng\.com reject
+^https?:\/\/utoken\.umeng\.com reject
+^https?:\/\/umini\.shujupie\.com reject
 
 # 腾讯 Bugly & 高德日志
-DOMAIN, bugly.qq.com, REJECT
-DOMAIN, trace.qq.com, REJECT
-DOMAIN, dualstack-logs.amap.com, REJECT
+^https?:\/\/bugly\.qq\.com reject
+^https?:\/\/trace\.qq\.com reject
+^https?:\/\/dualstack-logs\.amap\.com reject
 
-# === 3. 官方业务白名单（明确放行，请勿修改） ===
-# DOMAIN-SUFFIX, dsmxp.com, DIRECT
-# DOMAIN-SUFFIX, secu100.net, DIRECT
+[MITM]
+# 必须将需要解密的广告域名写入 MITM 才能使 HTTPS 重写生效
+hostname = *.anythinktech.com, *.toponad.com, *.ubixioe.com, api-access.pangolin-sdk-toutiao.com, api-access.pangolin-sdk-toutiao1.com, log-api.pangolin-sdk-toutiao.com, log-api.pangolin-sdk-toutiao-b.com, *.pglstatp-toutiao.com, toblog.ctobsnssdk.com, webcast-open.douyin.com, *.ugdtimg.com, *.yunxish.com, *.66mobi.com, *.adwangmai.com, *.hubcloud.com.cn, *.zhangyuyidong.cn, *.jpush.cn, *.umeng.com, umini.shujupie.com, bugly.qq.com
