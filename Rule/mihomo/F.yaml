@@ -1,0 +1,19 @@
+payload:
+#嘉信
+  - DOMAIN-SUFFIX,schwab.com
+  - DOMAIN-SUFFIX,charlesschwab.com
+  - DOMAIN-SUFFIX,schwabclient.com
+  - DOMAIN-SUFFIX,schwab.net
+  - DOMAIN-SUFFIX,schwabtouch.com
+  - DOMAIN-KEYWORD,schwab
+
+#wise
+  - DOMAIN-SUFFIX,wise.com
+  - DOMAIN-SUFFIX,transferwise.com
+  - DOMAIN-KEYWORD,wise
+
+#ifast
+  - DOMAIN-SUFFIX,ifastgb.com
+  - DOMAIN-SUFFIX,ifastcorp.com
+  - DOMAIN-SUFFIX,ifastfinancial.com
+  - DOMAIN-KEYWORD,ifast
