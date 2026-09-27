@@ -1,16 +1,18 @@
-rules:
- - DOMAIN,bybit-exchange.github.io,💞 地域限制,no-resolve       #bybit交易所
- - DOMAIN,bybit.ada.support,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,bybit.com,💞 地域限制,no-resolve      #bybit交易所
- - DOMAIN-SUFFIX,bycsi.com,💞 地域限制,no-resolve      #bybit交易所
- - DOMAIN-SUFFIX,bytick.com,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,byapis.com,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,bycbe.com,💞 地域限制,no-resolve      #bybit交易所
- - DOMAIN-SUFFIX,bymj.io,💞 地域限制,no-resolve        #bybit交易所
- - DOMAIN-SUFFIX,byabcde.com,💞 地域限制,no-resolve    #bybit交易所
- - DOMAIN-SUFFIX,byapps.net,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,byd3c3.com,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,bybit.biz,💞 地域限制,no-resolve      #bybit交易所
- - DOMAIN-SUFFIX,bybdc6.com,💞 地域限制,no-resolve     #bybit交易所
- - DOMAIN-SUFFIX,bybit-global.com,💞 地域限制,no-resolve  #bybit交易所
- - DOMAIN-SUFFIX,bybit.cloud,💞 地域限制,no-resolve       #bybit交易所
+payload:
+
+#bybit交易所
+ - DOMAIN,bybit-exchange.github.io
+ - DOMAIN,bybit.ada.support
+ - DOMAIN-SUFFIX,bybit.com
+ - DOMAIN-SUFFIX,bycsi.com
+ - DOMAIN-SUFFIX,bytick.com
+ - DOMAIN-SUFFIX,byapis.com
+ - DOMAIN-SUFFIX,bycbe.com
+ - DOMAIN-SUFFIX,bymj.io
+ - DOMAIN-SUFFIX,byabcde.com
+ - DOMAIN-SUFFIX,byapps.net
+ - DOMAIN-SUFFIX,byd3c3.com
+ - DOMAIN-SUFFIX,bybit.biz
+ - DOMAIN-SUFFIX,bybdc6.com
+ - DOMAIN-SUFFIX,bybit-global.com
+ - DOMAIN-SUFFIX,bybit.cloud
