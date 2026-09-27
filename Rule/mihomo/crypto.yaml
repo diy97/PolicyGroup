@@ -1,0 +1,16 @@
+rules:
+ - DOMAIN,bybit-exchange.github.io,💞 地域限制,no-resolve       #bybit交易所
+ - DOMAIN,bybit.ada.support,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,bybit.com,💞 地域限制,no-resolve      #bybit交易所
+ - DOMAIN-SUFFIX,bycsi.com,💞 地域限制,no-resolve      #bybit交易所
+ - DOMAIN-SUFFIX,bytick.com,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,byapis.com,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,bycbe.com,💞 地域限制,no-resolve      #bybit交易所
+ - DOMAIN-SUFFIX,bymj.io,💞 地域限制,no-resolve        #bybit交易所
+ - DOMAIN-SUFFIX,byabcde.com,💞 地域限制,no-resolve    #bybit交易所
+ - DOMAIN-SUFFIX,byapps.net,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,byd3c3.com,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,bybit.biz,💞 地域限制,no-resolve      #bybit交易所
+ - DOMAIN-SUFFIX,bybdc6.com,💞 地域限制,no-resolve     #bybit交易所
+ - DOMAIN-SUFFIX,bybit-global.com,💞 地域限制,no-resolve  #bybit交易所
+ - DOMAIN-SUFFIX,bybit.cloud,💞 地域限制,no-resolve       #bybit交易所
