@@ -17,3 +17,7 @@ payload:
   - DOMAIN-SUFFIX,ifastcorp.com
   - DOMAIN-SUFFIX,ifastfinancial.com
   - DOMAIN-KEYWORD,ifast
+
+#thinkorswim
+  - DOMAIN-SUFFIX,thinkorswim.com
+  - DOMAIN-KEYWORD,thinkorswim
